@@ -6,58 +6,53 @@
   <title>勇者が勝手に転ぶ冒険</title>
   <style>
     :root{
-      --bg0:#050714;
-      --bg1:#0c1533;
-      --text: rgba(255,255,255,.94);
-      --muted: rgba(255,255,255,.72);
-      --r:20px;
-      --shadow: 0 20px 48px rgba(0,0,0,.38);
-      --accent:#7cf7c2;
-      --accent-2:#7cc9ff;
-      --accent-3:#ffcf7c;
+      --bg0:#070b16;
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --r:18px;
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-    html,body{height:100%; margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif; background: radial-gradient(1100px 760px at 16% -6%, #1a2e76 0%, var(--bg1) 52%, var(--bg0) 100%); color:var(--text);}
+    html,body{height:100%; margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif; background: radial-gradient(1000px 700px at 20% 0%, #14245a 0%, var(--bg0) 60%, #050815 100%); color:var(--text);}
 
-    .wrap{min-height:100%; display:flex; flex-direction:column; padding: max(14px, env(safe-area-inset-top)) 14px max(14px, env(safe-area-inset-bottom)); gap:14px; align-items:center;}
+    .wrap{min-height:100%; display:flex; flex-direction:column; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); gap:12px; align-items:center;}
     .topbar{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch;}
 
-    .card{background: linear-gradient(180deg, rgba(17,34,98,.82), rgba(6,16,54,.86)); border: 1px solid rgba(255,255,255,.14); border-radius: var(--r); box-shadow: var(--shadow), inset 0 0 0 2px rgba(255,255,255,.05); position:relative; overflow:hidden;}
-    .card::after{content:""; position:absolute; inset:0; background: radial-gradient(120% 120% at 14% 10%, rgba(255,255,255,.08), transparent 45%); pointer-events:none;}
-    .brand{flex:1; padding: 14px 16px; display:flex; flex-direction:column; justify-content:center; gap:8px;}
-    .brand .title{font-weight:800; letter-spacing:.6px; font-size:15px; color: rgba(255,255,255,.96)}
-    .brand .sub{font-size:12.5px; color: var(--muted); line-height:1.55;}
+    .card{background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.07)); border: 1px solid rgba(255,255,255,.10); border-radius: var(--r); box-shadow: var(--shadow); backdrop-filter: blur(10px);}
+    .brand{flex:1; padding: 12px 14px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
+    .brand .title{font-weight:800; letter-spacing:.3px; font-size:14px; color: rgba(255,255,255,.92)}
+    .brand .sub{font-size:12px; color: var(--muted)}
 
-    .stats{padding: 12px 16px; min-width: 380px; display:flex; gap:14px; align-items:center; justify-content:space-between;}
-    .stat{display:flex; flex-direction:column; gap:4px; padding:6px 10px; border-radius:12px; background: linear-gradient(90deg, rgba(255,255,255,.04), rgba(255,255,255,.06)); box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);}
-    .stat .k{font-size:12px; letter-spacing:.3px; color: var(--muted)}
-    .stat .v{font-size:15px; font-variant-numeric: tabular-nums; letter-spacing:.4px; color:#fff;}
+    .stats{padding: 12px 14px; min-width: 380px; display:flex; gap:12px; align-items:center; justify-content:space-between;}
+    .stat{display:flex; flex-direction:column; gap:3px;}
+    .stat .k{font-size:11px; color: var(--muted)}
+    .stat .v{font-size:14px; font-variant-numeric: tabular-nums; letter-spacing:.2px;}
 
-    .stage{width:min(960px, 100%); display:grid; grid-template-columns: 1fr; gap:12px;}
-    .canvasWrap{position:relative; padding:12px;}
+    .stage{width:min(920px, 100%); display:grid; grid-template-columns: 1fr; gap:12px;}
+    .canvasWrap{position:relative; padding:10px;}
 
-    /* プレイ画面を拡大＆シャープに */
-    canvas{width:100%; aspect-ratio: 16 / 9; height:auto; max-height:78vh; display:block; border-radius: calc(var(--r) - 6px); background: radial-gradient(120% 160% at 50% 0%, #0f1e57 0%, #081231 60%, #050815 100%); border:1px solid rgba(255,255,255,.12); box-shadow: inset 0 0 0 1px rgba(255,255,255,.05), 0 22px 46px rgba(0,0,0,.38); image-rendering: crisp-edges;}
+    /* プレイ画面を拡大 */
+    canvas{width:100%; height:min(82vh, 820px); display:block; border-radius: calc(var(--r) - 6px); background: linear-gradient(180deg, #0b1740 0%, #070f2a 60%, #050815 100%); border:1px solid rgba(255,255,255,.08);}
 
-    .controls{width:min(960px, 100%); display:flex; gap:10px; align-items:stretch; justify-content:space-between;}
-    .btn{flex: 1; border: 1px solid rgba(255,255,255,.18); background: linear-gradient(180deg, rgba(255,255,255,.18), rgba(255,255,255,.07)); color: rgba(255,255,255,.94); border-radius: 16px; padding: 15px 16px; font-size: 15px; font-weight: 800; letter-spacing: .4px; box-shadow: 0 18px 40px rgba(0,0,0,.30); cursor:pointer; user-select:none; touch-action: manipulation; display:flex; align-items:center; justify-content:center; gap:10px; text-shadow: 0 2px 8px rgba(0,0,0,.35); transition: transform .08s ease, box-shadow .12s ease;}
-    .btn:active{transform: translateY(1px); box-shadow: 0 12px 24px rgba(0,0,0,.26);}
-    .btn.primary{border-color: rgba(124,247,194,.55); background: linear-gradient(180deg, rgba(124,247,194,.38), rgba(30,64,92,.65));}
-    .btn.primary .spark{width:12px; height:12px; border-radius:999px; background: rgba(124,247,194,0.98); box-shadow: 0 0 18px rgba(124,247,194,.75)}
+    .controls{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch; justify-content:space-between;}
+    .btn{flex: 1; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.07)); color: rgba(255,255,255,.92); border-radius: 16px; padding: 14px 14px; font-size: 14px; font-weight: 800; letter-spacing: .3px; box-shadow: 0 18px 40px rgba(0,0,0,.30); cursor:pointer; user-select:none; touch-action: manipulation; display:flex; align-items:center; justify-content:center; gap:10px;}
+    .btn:active{transform: translateY(1px);}
+    .btn.primary{border-color: rgba(124,247,194,.35);}
+    .btn.primary .spark{width:10px; height:10px; border-radius:999px; background: rgba(124,247,194,0.95); box-shadow: 0 0 18px rgba(124,247,194,.65)}
 
     .toggle{flex: 0.9; display:flex; gap:10px; padding: 12px 14px; align-items:center; justify-content:space-between;}
-    .toggle .label{display:flex; flex-direction:column; gap:4px;}
-    .toggle .label .t{font-size:13px; font-weight:800; letter-spacing:.3px;}
-    .toggle .label .d{font-size:11.5px; color: var(--muted); line-height:1.45;}
-    .switch{width:52px; height:30px; border-radius:999px; background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.08)); border: 1px solid rgba(255,255,255,.18); position:relative; cursor:pointer; user-select:none; touch-action: manipulation; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);}
-    .knob{width:24px; height:24px; border-radius:999px; position:absolute; top:50%; transform: translateY(-50%); left:4px; background: rgba(255,255,255,.90); box-shadow: 0 12px 22px rgba(0,0,0,.28); transition: left .18s ease, background .18s ease, box-shadow .18s ease;}
-    .switch.on{background: linear-gradient(180deg, rgba(124,247,194,.30), rgba(124,247,194,.12)); border-color: rgba(124,247,194,.40)}
-    .switch.on .knob{left: 24px; background: rgba(124,247,194,.98); box-shadow: 0 14px 24px rgba(124,247,194,.35);}
+    .toggle .label{display:flex; flex-direction:column; gap:3px;}
+    .toggle .label .t{font-size:13px; font-weight:800;}
+    .toggle .label .d{font-size:11px; color: var(--muted)}
+    .switch{width:46px; height:28px; border-radius:999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); position:relative; cursor:pointer; user-select:none; touch-action: manipulation;}
+    .knob{width:22px; height:22px; border-radius:999px; position:absolute; top:50%; transform: translateY(-50%); left:3px; background: rgba(255,255,255,.82); box-shadow: 0 12px 22px rgba(0,0,0,.28); transition: left .16s ease, background .16s ease;}
+    .switch.on{background: rgba(124,247,194,.20); border-color: rgba(124,247,194,.30)}
+    .switch.on .knob{left: 21px; background: rgba(124,247,194,.96)}
 
-    .resultBar{width:min(960px, 100%); display:flex; gap:10px; align-items:stretch;}
-    .btn.small{padding: 12px 14px; font-size: 14px; flex: 1;}
+    .resultBar{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch;}
+    .btn.small{padding: 12px 14px; font-size: 13px; flex: 1;}
 
-    .note{width:min(960px, 100%); padding: 12px 14px; font-size: 12.5px; color: var(--muted); line-height: 1.7; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));}
+    .note{width:min(920px, 100%); padding: 10px 14px; font-size: 12px; color: var(--muted); line-height: 1.65;}
     .kbd{font-variant-numeric: tabular-nums; padding: 2px 6px; border:1px solid rgba(255,255,255,.14); border-bottom-color: rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.06);}
 
     @media (max-width: 560px){
@@ -65,8 +60,6 @@
       .controls{flex-direction:column;}
       .resultBar{flex-direction:column;}
       .btn,.toggle{flex:1;}
-      .stat{width:100%;}
-      .brand .sub{font-size:12px;}
     }
   </style>
 </head>
@@ -226,17 +219,6 @@
   // ==============================
   const cv = document.getElementById('cv');
   const ctx = cv.getContext('2d');
-
-  function resizeCanvas(){
-    const ratio = Math.min(1.6, window.devicePixelRatio || 1);
-    const clientW = cv.getBoundingClientRect().width || window.innerWidth;
-    const targetW = Math.max(980, Math.min(1600, Math.floor(clientW * ratio)));
-    cv.width = targetW;
-    cv.height = Math.floor(targetW * 9 / 16);
-  }
-
-  resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
 
   const elCur = document.getElementById('cur');
   const elDaily = document.getElementById('daily');
@@ -429,8 +411,6 @@
   let logLines = [];
   let lastCause = '';
   let title = '';
-  let lastIsBest = false;
-  let resultBadges = [];
 
   let msg = { text:'', t:0, dur:0 };
 
@@ -520,12 +500,11 @@
   // ==============================
   // Controls
   // ==============================
-  cv.addEventListener('pointerdown', () => triggerStart('canvas'), {passive:true});
-  btnStart.addEventListener('click', () => triggerStart('button'));
+  cv.addEventListener('pointerdown', () => triggerStart(), {passive:true});
+  btnStart.addEventListener('click', () => triggerStart());
 
-  function triggerStart(source='button'){
+  function triggerStart(){
     if (mode === MODE.RUN || mode === MODE.FALLING) return;
-    if (mode === MODE.RESULT && source !== 'button') return; // 誤爆防止：リザルト中はボタンのみ
     // 音はユーザー操作で起動できるので、ここでAudioContextを起こしておく
     ensureAudio();
     startRun();
@@ -624,8 +603,6 @@
     logLines = [];
     lastCause = '';
     title = '';
-    resultBadges = [];
-    lastIsBest = false;
 
     nextEncounterX = 680 + Math.floor(rng()*220);
     nextItemX = 520 + Math.floor(rng()*240);
@@ -718,7 +695,6 @@
     title = computeTitle();
 
     let isBest = false;
-    const beatDaily = dist > dailyBest;
     if (dist > best){
       best = dist;
       localStorage.setItem(STORE_KEY_BEST, String(best));
@@ -728,16 +704,6 @@
       dailyBest = dist;
       localStorage.setItem(STORE_KEY_DAILY_PREFIX + todayKey(), String(dailyBest));
     }
-
-    lastIsBest = isBest;
-    resultBadges = [];
-    if (isBest) resultBadges.push('新記録');
-    else if (beatDaily) resultBadges.push('本日ベスト');
-    if (title) resultBadges.push('称号');
-    if (rareCount > 0) resultBadges.push(`レア ${rareCount}`);
-    if (kills >= 5) resultBadges.push('討伐');
-    if (level >= 5) resultBadges.push(`Lv ${level}`);
-    if (inventory.length >= 6) resultBadges.push('レア拾い');
 
     updateRanking();
 
@@ -801,10 +767,6 @@
 
       const targetCam = hero.x - 320;
       camX += (targetCam - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
-
-      if (rng() < 0.10 * dt * 60){
-        particles.push({ x: hero.x + 24, y: hero.y - 28, vx: -60 + rng()*120, vy: -20 - rng()*40, life: 0.25, kind:'spark', color:'rgba(255,255,255,0.82)' });
-      }
 
       // 簡易HP/MP変動（演出）
       if (rng() < 0.01 * dt * 60){
@@ -1207,18 +1169,6 @@
     const ang = running ? hero.tilt : (hero.rag + 1.1);
     drawHero(ctx, hero.x, hero.y, ang, running, glow);
 
-    if (glow > 0.05){
-      ctx.save();
-      ctx.globalAlpha = 0.20 + glow*0.15;
-      const hx = hero.x - camX;
-      const hy = hero.y - 42;
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      ctx.beginPath();
-      ctx.ellipse(hx, hy, 14, 6, 0, 0, Math.PI*2);
-      ctx.fill();
-      ctx.restore();
-    }
-
     // particles
     drawParticlesWorld(ctx);
 
@@ -1236,15 +1186,14 @@
   function drawLandmark(ctx, ev){
     ctx.save();
     ctx.translate(ev.x, ev.y);
-    const s = clamp(cv.width / 1200, 0.9, 1.2);
     ctx.globalAlpha = 0.98;
-    ctx.font = `${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '28px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(ev.data.icon, 0, 0);
     ctx.globalAlpha = 0.75;
     ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = `${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '14px ui-sans-serif, system-ui, -apple-system';
     ctx.fillText(ev.data.name, 0, 30);
     ctx.restore();
   }
@@ -1253,29 +1202,27 @@
     ctx.save();
     ctx.translate(ev.mx, ev.my);
 
-    const s = clamp(cv.width / 1200, 0.92, 1.18);
-
     ctx.globalAlpha = 0.20;
     ctx.beginPath();
-    ctx.arc(0, 0, 64*s, 0, Math.PI*2);
+    ctx.arc(0, 0, 64, 0, Math.PI*2);
     ctx.fillStyle = 'rgba(255,90,90,0.75)';
     ctx.fill();
 
     ctx.globalAlpha = 0.98;
-    ctx.font = `${Math.round(56*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '54px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(ev.boss.icon, 0, 0);
 
     ctx.globalAlpha = 0.80;
     ctx.fillStyle = 'rgba(255,255,255,0.90)';
-    ctx.font = `${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(ev.boss.name, 0, 52*s/1.1);
+    ctx.font = '16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(ev.boss.name, 0, 48);
 
     if (ev.phase >= 1 && ev.t < 1.25){
       ctx.globalAlpha = 0.28;
       ctx.beginPath();
-      ctx.arc(0, 0, 86*s, 0, Math.PI*2);
+      ctx.arc(0, 0, 86, 0, Math.PI*2);
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
       ctx.fill();
     }
@@ -1286,23 +1233,22 @@
   function drawMonster(ctx, ev){
     ctx.save();
     ctx.translate(ev.mx, ev.my);
-    const s = clamp(cv.width / 1200, 0.9, 1.2);
     ctx.globalAlpha = 0.98;
-    ctx.font = ev.rare ? `${Math.round(42*s)}px ui-sans-serif, system-ui, -apple-system` : `${Math.round(36*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = ev.rare ? '40px ui-sans-serif, system-ui, -apple-system' : '34px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(ev.monster.icon, 0, 0);
 
     ctx.globalAlpha = ev.rare ? 0.26 : 0.18;
     ctx.beginPath();
-    ctx.arc(0, 0, (ev.rare ? 34 : 26) * s, 0, Math.PI*2);
+    ctx.arc(0, 0, ev.rare ? 34 : 26, 0, Math.PI*2);
     ctx.fillStyle = ev.rare ? 'rgba(255,215,90,0.65)' : (heroClass ? heroClass.main : 'rgba(255,255,255,0.6)');
     ctx.fill();
 
     if (ev.phase >= 1 && ev.t < 1.18){
       ctx.globalAlpha = 0.40;
       ctx.beginPath();
-      ctx.arc(0, 0, (ev.rare ? 48 : 40) * s, 0, Math.PI*2);
+      ctx.arc(0, 0, ev.rare ? 48 : 40, 0, Math.PI*2);
       ctx.fillStyle = 'rgba(255,255,255,0.35)';
       ctx.fill();
     }
@@ -1314,16 +1260,15 @@
     ctx.save();
     ctx.translate(x, y);
     const it = ev.data;
-    const s = clamp(cv.width / 1200, 0.9, 1.2);
     ctx.globalAlpha = 0.96;
-    ctx.font = (it.rare ? Math.round(36*s) : Math.round(30*s)) + 'px ui-sans-serif, system-ui, -apple-system';
+    ctx.font = (it.rare ? 34 : 28) + 'px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(it.icon, 0, 0);
     if (it.rare){
       ctx.globalAlpha = 0.22;
       ctx.beginPath();
-      ctx.arc(0, 0, 34*s, 0, Math.PI*2);
+      ctx.arc(0, 0, 34, 0, Math.PI*2);
       ctx.fillStyle = 'rgba(255,215,90,0.75)';
       ctx.fill();
     }
@@ -1363,28 +1308,24 @@
   }
 
   function drawHero(ctx, x, y, tilt, running, glow){
-    // ドット絵っぽい勇者（矩形のみでシルエット強化）
+    // ドット絵っぽい勇者（矩形だけで構成）
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(tilt);
 
-    const sizeBoost = clamp(cv.width / 1200, 0.92, 1.22);
-    const s = 3.6 * sizeBoost;
-
     // shadow
     ctx.save();
-    ctx.globalAlpha = 0.24;
+    ctx.globalAlpha = 0.22;
     ctx.fillStyle = 'rgba(0,0,0,0.70)';
     ctx.beginPath();
-    ctx.ellipse(0, 90*s/3.6, 48*s/3.6, 14*s/3.6, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 84, 46, 13, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
 
     const main = heroClass ? heroClass.main : '#7cc9ff';
-    const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.85)';
-    const accent = 'rgba(255,255,255,0.92)';
-    const cape = 'rgba(255,120,120,0.92)';
+    const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.80)';
 
+    const s = 3.2; // ドット倍率
     const px = (dx, dy, w, h, c, a=1) => {
       ctx.save();
       ctx.globalAlpha = a;
@@ -1393,85 +1334,64 @@
       ctx.restore();
     };
 
-    ctx.translate(-13*s, -30*s);
+    ctx.translate(-12*s, -26*s);
 
     const O = 'rgba(0,0,0,0.55)';
-    const swing = running ? Math.sin(hero.step)*2.2 : 0;
-    const leg = running ? Math.sin(hero.step+0.4)*2.4 : 0;
-
-    // cape (後ろにチラつき)
-    px(3, 18 + swing*0.15, 22, 18, cape, 0.78);
-    px(5, 14 + swing*0.12, 18, 12, cape, 0.90);
 
     // head
-    px(5, 0, 16, 11, O, 0.55);
-    px(6, 1, 14, 9, 'rgba(255,255,255,0.94)');
-    px(6, -2, 14, 4, main, 0.92);
-    px(5, 3, 16, 3, main, 0.88);
-    // highlight & eyes
-    px(8, 3, 2, 2, 'rgba(0,0,0,0.75)');
-    px(15, 3, 2, 2, 'rgba(0,0,0,0.75)');
-    px(9, 6, 8, 2, 'rgba(0,0,0,0.18)');
+    px(6, 0, 12, 10, O, 0.55);
+    px(7, 1, 10, 8, 'rgba(255,255,255,0.92)');
+
+    // hair/hat
+    px(7, 1, 10, 3, main, 0.95);
+    px(6, 4, 12, 2, main, 0.85);
+
+    // eyes
+    px(9, 4, 2, 2, 'rgba(0,0,0,0.7)');
+    px(13, 4, 2, 2, 'rgba(0,0,0,0.7)');
 
     // body
-    px(6, 11, 14, 11, main, 0.96);
-    px(7, 22, 12, 5, accent, 0.92);
-    px(7, 18, 12, 4, 'rgba(0,0,0,0.18)', 0.5);
-
-    // belt & gem
-    px(5, 24, 16, 2, 'rgba(0,0,0,0.6)', 0.7);
-    px(11, 24, 4, 2, 'rgba(255,215,120,0.92)');
+    px(7, 10, 10, 10, main, 0.95);
+    px(7, 20, 10, 5, 'rgba(255,255,255,0.90)', 0.90);
 
     // arms
-    px(3, 12 + swing*0.6, 3, 10, accent);
-    px(19, 12 - swing*0.6, 3, 10, accent);
-    px(2, 16 + swing*0.6, 5, 3, 'rgba(0,0,0,0.35)', 0.6);
-    px(18, 16 - swing*0.6, 5, 3, 'rgba(0,0,0,0.35)', 0.6);
+    const swing = running ? Math.sin(hero.step)*1.5 : 0;
+    px(4, 11 + swing*0.4, 3, 9, 'rgba(255,255,255,0.90)');
+    px(17, 11 - swing*0.4, 3, 9, 'rgba(255,255,255,0.90)');
 
-    // legs + boots
-    px(7, 27 + leg*0.10, 5, 9, accent);
-    px(13, 27 - leg*0.12, 5, 9, accent);
-    px(7, 34 + leg*0.1, 5, 3, 'rgba(0,0,0,0.45)');
-    px(13, 34 - leg*0.12, 5, 3, 'rgba(0,0,0,0.45)');
+    // legs
+    const leg = running ? Math.sin(hero.step)*1.8 : 0;
+    px(8, 25, 4, 8, 'rgba(255,255,255,0.90)');
+    px(12, 25 + leg*0.2, 4, 8, 'rgba(255,255,255,0.90)');
 
-    // weapon (大きめに)
+    // weapon
     ctx.save();
-    ctx.globalAlpha = 0.96;
+    ctx.globalAlpha = 0.92;
     ctx.strokeStyle = blade;
-    ctx.lineWidth = 4.2 * sizeBoost;
+    ctx.lineWidth = 3.6;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(24*s, 18*s + swing*0.5*s);
-    ctx.lineTo(36*s, 6*s + swing*0.2*s);
+    ctx.moveTo(22*s, 16*s);
+    ctx.lineTo(32*s, 8*s);
     ctx.stroke();
     ctx.restore();
 
     if (equipped && equipped.name === 'でんせつのけん'){
       ctx.save();
-      ctx.globalAlpha = 0.30;
+      ctx.globalAlpha = 0.26;
       ctx.strokeStyle = blade;
-      ctx.lineWidth = 8.2 * sizeBoost;
+      ctx.lineWidth = 7.2;
       ctx.beginPath();
-      ctx.moveTo(24*s, 18*s + swing*0.5*s);
-      ctx.lineTo(36*s, 6*s + swing*0.2*s);
+      ctx.moveTo(22*s, 16*s);
+      ctx.lineTo(32*s, 8*s);
       ctx.stroke();
       ctx.restore();
     }
 
     if (hero.crown){
-      px(8, -5, 8, 4, 'rgba(124,247,194,0.96)');
-      px(8, -7, 2, 2, 'rgba(124,247,194,0.96)');
-      px(14, -7, 2, 2, 'rgba(124,247,194,0.96)');
-    }
-
-    // outline glow
-    if (glow > 0.1){
-      ctx.save();
-      ctx.globalAlpha = 0.16 + glow*0.18;
-      ctx.strokeStyle = main;
-      ctx.lineWidth = 6 * sizeBoost;
-      ctx.strokeRect(3*s, -6*s, 22*s, 42*s);
-      ctx.restore();
+      px(9, -4, 6, 3, 'rgba(124,247,194,0.95)');
+      px(9, -6, 2, 2, 'rgba(124,247,194,0.95)');
+      px(13, -6, 2, 2, 'rgba(124,247,194,0.95)');
     }
 
     ctx.restore();
@@ -1481,228 +1401,182 @@
   // HUD + Result
   // ==============================
   function drawHUD(W, H, glow){
-    const ui = clamp(W / 1180, 0.88, 1.20);
-    const pad = 18 * ui;
-    const w = Math.min(900, W - pad*2);
+    const pad = 18;
+    const w = Math.min(880, W - pad*2);
     const x = (W - w)/2;
 
-    dqWindow(x, 16*ui, w, 136*ui, 22*ui, ui);
+    dqWindow(x, 18, w, 118);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '900 20px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'left';
-    ctx.font = `900 ${Math.round(22*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ぼうけん', x + 20*ui, 46*ui);
+    ctx.fillText('ぼうけん', x + 18, 48);
 
-    ctx.font = `750 ${Math.round(17*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
+    ctx.font = '750 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
 
     const cls = heroClass ? heroClass.name : '？？？';
     const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'ぶき：なし';
 
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + 20*ui, 74*ui);
-    ctx.fillText(`${wpn}`, x + 20*ui, 98*ui);
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + 18, 74);
+    ctx.fillText(`${wpn}`, x + 18, 96);
 
     // HP/MP bars
-    drawBar(x + 20*ui, 108*ui, 240*ui, 12*ui, hp / Math.max(1,maxHp), 'HP', ui);
-    drawBar(x + 20*ui, 126*ui, 240*ui, 12*ui, mp / Math.max(1,maxMp), 'MP', ui);
+    drawBar(x + 18, 104, 220, 10, hp / Math.max(1,maxHp), 'HP');
+    drawBar(x + 18, 118, 220, 10, mp / Math.max(1,maxMp), 'MP');
 
     // right metrics
     ctx.textAlign = 'right';
-    ctx.fillText(`きょり ${fmt(dist)}`, x + w - 20*ui, 54*ui);
-    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - 20*ui, 78*ui);
-    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - 20*ui, 102*ui);
+    ctx.fillText(`きょり ${fmt(dist)}`, x + w - 18, 56);
+    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - 18, 80);
+    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - 18, 104);
 
     // message window
-    const msgH = 176 * ui;
-    dqWindow(x, H - msgH - 18*ui, w, msgH, 20*ui, ui);
+    dqWindow(x, H - 180, w, 150);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,0.96)';
-    ctx.font = `820 ${Math.round(19*ui)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '800 18px ui-sans-serif, system-ui, -apple-system';
 
-    const baseLine = (mode === MODE.RUN) ? '…' : 'タップ / ボタン ではじめる';
+    const baseLine = (mode === MODE.RUN) ? '...' : 'タップして ぼうけん';
     const line1 = msg.text || baseLine;
 
-    wrapText(line1, x + 20*ui, H - msgH + 36*ui, w - 40*ui, 24*ui, 2);
+    wrapText(line1, x + 18, H - 136, w - 36, 22, 2);
 
-    ctx.globalAlpha = 0.8;
-    ctx.font = `700 ${Math.round(14*ui)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.globalAlpha = 0.75;
+    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
     const recent = logLines.slice(-3);
     for (let i=0;i<recent.length;i++){
-      ctx.fillText(recent[i], x + 20*ui, H - msgH + 88*ui + i*20*ui);
-    }
-
-    // simple command-like prompt
-    const commands = ['▶ つづける', '　そうび', '　きろく'];
-    ctx.globalAlpha = 0.9;
-    ctx.font = `800 ${Math.round(15*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    for (let i=0;i<commands.length;i++){
-      ctx.fillText(commands[i], x + 22*ui + i*120*ui, H - msgH + msgH - 26*ui);
+      ctx.fillText(recent[i], x + 18, H - 74 + i*18);
     }
     ctx.globalAlpha = 1;
   }
 
-  function drawBar(x, y, w, h, ratio, label, ui=1){
+  function drawBar(x, y, w, h, ratio, label){
     ratio = clamp(ratio, 0, 1);
     ctx.save();
-    ctx.globalAlpha = 0.96;
-    ctx.strokeStyle = 'rgba(255,255,255,0.92)';
-    ctx.lineWidth = 1.4 * ui;
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1;
     ctx.strokeRect(x, y, w, h);
 
-    const grad = ctx.createLinearGradient(x, y, x+w, y);
-    grad.addColorStop(0, label === 'HP' ? 'rgba(124,247,194,0.80)' : 'rgba(124,201,255,0.78)');
-    grad.addColorStop(1, 'rgba(255,255,255,0.40)');
-    ctx.globalAlpha = 0.8;
-    ctx.fillStyle = grad;
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.75)' : 'rgba(124,201,255,0.70)';
     ctx.fillRect(x+1, y+1, Math.max(0, (w-2)*ratio), h-2);
 
-    ctx.globalAlpha = 0.95;
+    ctx.globalAlpha = 0.9;
     ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.font = `700 ${Math.round(12*ui)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '700 12px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'left';
-    ctx.fillText(label, x + w + 10*ui, y + h);
+    ctx.fillText(label, x + w + 10, y + h);
 
     ctx.restore();
   }
 
   function drawCenterCard(W, H, glow, title, sub){
-    const ui = clamp(W / 1160, 0.9, 1.2);
-    const cw = Math.min(820, W - 120);
-    const ch = 260 * ui;
+    const cw = Math.min(780, W - 140);
+    const ch = 250;
     const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - 10*ui;
+    const cy = (H - ch)/2 - 10;
 
-    dqWindow(cx, cy, cw, ch, 24*ui, ui);
+    dqWindow(cx, cy, cw, ch, 24);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.textAlign = 'left';
-    ctx.font = `950 ${Math.round(28*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(title, cx + 22*ui, cy + 64*ui);
+    ctx.font = '950 28px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(title, cx + 22, cy + 66);
 
-    ctx.font = `750 ${Math.round(18*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillStyle = 'rgba(255,255,255,0.86)';
-    wrapText(sub, cx + 22*ui, cy + 106*ui, cw - 44*ui, 24*ui, 3);
+    ctx.font = '750 18px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    wrapText(sub, cx + 22, cy + 108, cw - 44, 24, 3);
 
     // mini ranking preview
-    ctx.fillStyle = 'rgba(255,255,255,0.75)';
-    ctx.font = `780 ${Math.round(16*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ローカルランキング Top3', cx + 22*ui, cy + ch - 74*ui);
+    ctx.fillStyle = 'rgba(255,255,255,0.70)';
+    ctx.font = '700 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('ローカルランキング Top3', cx + 22, cy + ch - 70);
 
-    ctx.font = `650 ${Math.round(14*ui)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
     const top3 = ranking.slice(0,3);
     for (let i=0;i<top3.length;i++){
       const r = top3[i];
-      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + 22*ui, cy + ch - 52*ui + i*18*ui);
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + 22, cy + ch - 48 + i*18);
     }
   }
 
   function drawResultCard(W, H, glow){
-    const ui = clamp(W / 1160, 0.9, 1.20);
-    const cw = Math.min(920, W - 110);
-    const ch = 440 * ui;
+    const cw = Math.min(900, W - 120);
+    const ch = 420;
     const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - 6*ui;
+    const cy = (H - ch)/2 - 6;
 
-    dqWindow(cx, cy, cw, ch, 26*ui, ui);
+    dqWindow(cx, cy, cw, ch, 24);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.96)';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
     ctx.textAlign = 'left';
-    ctx.font = `950 ${Math.round(28*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('リザルト', cx + 24*ui, cy + 56*ui);
+    ctx.font = '950 28px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('リザルト', cx + 22, cy + 58);
 
-    // badges
-    const badges = resultBadges.slice(0, 6);
-    ctx.font = `800 ${Math.round(14*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    for (let i=0;i<badges.length;i++){
-      const bx = cx + 22*ui + i*120*ui;
-      const by = cy + 74*ui;
-      ctx.save();
-      ctx.fillStyle = i === 0 && lastIsBest ? 'rgba(255,215,120,0.95)' : 'rgba(124,247,194,0.90)';
-      ctx.globalAlpha = 0.95;
-      roundRect(ctx, bx, by, 108*ui, 30*ui, 12*ui);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(0,0,0,0.30)';
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(0,0,0,0.72)';
-      ctx.fillText(badges[i], bx + 10*ui, by + 20*ui);
-      ctx.restore();
-    }
-
-    ctx.font = `820 ${Math.round(18*ui)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '800 18px ui-sans-serif, system-ui, -apple-system';
     const cls = heroClass ? heroClass.name : '？？？';
     const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
 
-    ctx.fillStyle = 'rgba(255,255,255,0.92)';
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + 22*ui, cy + 116*ui);
-    ctx.fillText(`しょうごう：${title || '—'}`, cx + 22*ui, cy + 144*ui);
-    ctx.fillText(`きょり：${fmt(dist)}`, cx + 22*ui, cy + 172*ui);
-    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + 22*ui, cy + 200*ui);
-    ctx.fillText(`ぶき：${wpn}`, cx + 22*ui, cy + 228*ui);
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + 22, cy + 96);
+    ctx.fillText(`しょうごう：${title || '—'}`, cx + 22, cy + 124);
+    ctx.fillText(`きょり：${fmt(dist)}`, cx + 22, cy + 152);
+    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + 22, cy + 180);
+    ctx.fillText(`ぶき：${wpn}`, cx + 22, cy + 208);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
     const list = inventory.slice(0, 10).map(i => `${i.icon}${i.name}`).join(' / ');
     const more = inventory.length > 10 ? ` (+${inventory.length-10})` : '';
-    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + 22*ui, cy + 256*ui, cw - 44*ui, 22*ui, 2);
+    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + 22, cy + 238, cw - 44, 22, 2);
 
     const lm = landmarksSeen.slice(0, 6).map(l => `${l.icon}${l.name}`).join(' / ');
     const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
-    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + 22*ui, cy + 300*ui, cw - 44*ui, 22*ui, 2);
+    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + 22, cy + 282, cw - 44, 22, 2);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.fillText(`てんとう：${lastCause || '—'}`, cx + 22*ui, cy + 352*ui);
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillText(`てんとう：${lastCause || '—'}`, cx + 22, cy + 336);
 
     // ranking Top5
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = `820 ${Math.round(16*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ローカルランキング Top5', cx + 22*ui, cy + 382*ui);
+    ctx.fillStyle = 'rgba(255,255,255,0.70)';
+    ctx.font = '800 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('ローカルランキング Top5', cx + 22, cy + 368);
 
-    ctx.font = `650 ${Math.round(14*ui)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
     const top5 = ranking.slice(0,5);
     for (let i=0;i<top5.length;i++){
       const r = top5[i];
-      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}  ${r.title ? '「'+r.title+'」' : ''}`, cx + 22*ui, cy + 404*ui + i*18*ui);
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}  ${r.title ? '「'+r.title+'」' : ''}`, cx + 22, cy + 390 + i*18);
     }
 
-    ctx.fillStyle = 'rgba(255,255,255,0.70)';
-    ctx.font = `680 ${Math.round(15*ui)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('下のボタンで 共有 / コピーできます', cx + 22*ui, cy + ch - 22*ui);
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.font = '650 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('下のボタンで 共有 / コピーできます', cx + 22, cy + ch - 22);
   }
 
   // ==============================
   // DQ window primitives
   // ==============================
-  function dqWindow(x, y, w, h, r=18, ui=1){
+  function dqWindow(x, y, w, h, r=18){
     ctx.save();
     const grad = ctx.createLinearGradient(x, y, x, y+h);
-    grad.addColorStop(0, 'rgba(24,54,138,0.95)');
-    grad.addColorStop(1, 'rgba(10,22,74,0.94)');
+    grad.addColorStop(0, 'rgba(10,27,99,0.92)');
+    grad.addColorStop(1, 'rgba(6,19,67,0.92)');
 
-    ctx.shadowColor = 'rgba(0,0,0,0.45)';
-    ctx.shadowBlur = 18 * ui;
     roundRect(ctx, x, y, w, h, r);
     ctx.fillStyle = grad;
     ctx.fill();
 
-    ctx.shadowBlur = 0;
-    ctx.lineWidth = 3 * ui;
-    ctx.strokeStyle = 'rgba(255,255,255,0.94)';
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
     ctx.stroke();
 
-    ctx.lineWidth = 2 * ui;
-    ctx.strokeStyle = 'rgba(12,18,52,0.92)';
-    roundRect(ctx, x + 4*ui, y + 4*ui, w - 8*ui, h - 8*ui, Math.max(10, r - 6));
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    roundRect(ctx, x+4, y+4, w-8, h-8, Math.max(10, r-6));
     ctx.stroke();
-
-    // highlight line
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y + 8*ui);
-    ctx.lineTo(x + w - r, y + 8*ui);
-    ctx.strokeStyle = 'rgba(255,255,255,0.38)';
-    ctx.lineWidth = 1.8 * ui;
-    ctx.stroke();
-    ctx.globalAlpha = 1;
 
     ctx.restore();
   }
