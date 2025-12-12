@@ -1,0 +1,1644 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>勇者が勝手に転ぶ冒険</title>
+  <style>
+    :root{
+      --bg0:#070b16;
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.68);
+      --r:18px;
+      --shadow: 0 18px 40px rgba(0,0,0,.35);
+    }
+    *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+    html,body{height:100%; margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif; background: radial-gradient(1000px 700px at 20% 0%, #14245a 0%, var(--bg0) 60%, #050815 100%); color:var(--text);}
+
+    .wrap{min-height:100%; display:flex; flex-direction:column; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); gap:12px; align-items:center;}
+    .topbar{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch;}
+
+    .card{background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.07)); border: 1px solid rgba(255,255,255,.10); border-radius: var(--r); box-shadow: var(--shadow); backdrop-filter: blur(10px);}
+    .brand{flex:1; padding: 12px 14px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
+    .brand .title{font-weight:800; letter-spacing:.3px; font-size:14px; color: rgba(255,255,255,.92)}
+    .brand .sub{font-size:12px; color: var(--muted)}
+
+    .stats{padding: 12px 14px; min-width: 380px; display:flex; gap:12px; align-items:center; justify-content:space-between;}
+    .stat{display:flex; flex-direction:column; gap:3px;}
+    .stat .k{font-size:11px; color: var(--muted)}
+    .stat .v{font-size:14px; font-variant-numeric: tabular-nums; letter-spacing:.2px;}
+
+    .stage{width:min(920px, 100%); display:grid; grid-template-columns: 1fr; gap:12px;}
+    .canvasWrap{position:relative; padding:10px;}
+
+    /* プレイ画面を拡大 */
+    canvas{width:100%; height:min(82vh, 820px); display:block; border-radius: calc(var(--r) - 6px); background: linear-gradient(180deg, #0b1740 0%, #070f2a 60%, #050815 100%); border:1px solid rgba(255,255,255,.08);}
+
+    .controls{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch; justify-content:space-between;}
+    .btn{flex: 1; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.07)); color: rgba(255,255,255,.92); border-radius: 16px; padding: 14px 14px; font-size: 14px; font-weight: 800; letter-spacing: .3px; box-shadow: 0 18px 40px rgba(0,0,0,.30); cursor:pointer; user-select:none; touch-action: manipulation; display:flex; align-items:center; justify-content:center; gap:10px;}
+    .btn:active{transform: translateY(1px);}
+    .btn.primary{border-color: rgba(124,247,194,.35);}
+    .btn.primary .spark{width:10px; height:10px; border-radius:999px; background: rgba(124,247,194,0.95); box-shadow: 0 0 18px rgba(124,247,194,.65)}
+
+    .toggle{flex: 0.9; display:flex; gap:10px; padding: 12px 14px; align-items:center; justify-content:space-between;}
+    .toggle .label{display:flex; flex-direction:column; gap:3px;}
+    .toggle .label .t{font-size:13px; font-weight:800;}
+    .toggle .label .d{font-size:11px; color: var(--muted)}
+    .switch{width:46px; height:28px; border-radius:999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); position:relative; cursor:pointer; user-select:none; touch-action: manipulation;}
+    .knob{width:22px; height:22px; border-radius:999px; position:absolute; top:50%; transform: translateY(-50%); left:3px; background: rgba(255,255,255,.82); box-shadow: 0 12px 22px rgba(0,0,0,.28); transition: left .16s ease, background .16s ease;}
+    .switch.on{background: rgba(124,247,194,.20); border-color: rgba(124,247,194,.30)}
+    .switch.on .knob{left: 21px; background: rgba(124,247,194,.96)}
+
+    .resultBar{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch;}
+    .btn.small{padding: 12px 14px; font-size: 13px; flex: 1;}
+
+    .note{width:min(920px, 100%); padding: 10px 14px; font-size: 12px; color: var(--muted); line-height: 1.65;}
+    .kbd{font-variant-numeric: tabular-nums; padding: 2px 6px; border:1px solid rgba(255,255,255,.14); border-bottom-color: rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.06);}
+
+    @media (max-width: 560px){
+      .stats{min-width: 0;}
+      .controls{flex-direction:column;}
+      .resultBar{flex-direction:column;}
+      .btn,.toggle{flex:1;}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="card brand">
+        <div class="title">勇者が勝手に転ぶ冒険</div>
+        <div class="sub">RPGっぽく色々起きます（スコアは距離のみ）。レベル/HP/MP/称号/ローカルランキング。</div>
+      </div>
+      <div class="card stats" aria-label="stats">
+        <div class="stat"><div class="k">今回</div><div class="v" id="cur">0.0 m</div></div>
+        <div class="stat"><div class="k">本日ベスト</div><div class="v" id="daily">0.0 m</div></div>
+        <div class="stat"><div class="k">通算ベスト</div><div class="v" id="best">0.0 m</div></div>
+        <div class="stat"><div class="k">討伐</div><div class="v" id="kills">0</div></div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="card canvasWrap">
+        <!-- 内部解像度を少し上げてシャープに（CSSで拡大） -->
+        <canvas id="cv" width="1600" height="900" aria-label="game canvas"></canvas>
+      </div>
+
+      <div class="controls">
+        <button class="btn primary" id="btnStart"><span class="spark"></span><span id="btnText">冒険をはじめる</span></button>
+        <div class="card toggle" role="group" aria-label="settings">
+          <div class="label"><div class="t">SE</div><div class="d">レトロ効果音</div></div>
+          <div class="switch on" id="swSound" aria-label="toggle sound"><div class="knob"></div></div>
+        </div>
+        <div class="card toggle" role="group" aria-label="settings">
+          <div class="label"><div class="t">振動</div><div class="d">対応端末のみ</div></div>
+          <div class="switch" id="swVibe" aria-label="toggle vibration"><div class="knob"></div></div>
+        </div>
+      </div>
+
+      <div class="resultBar">
+        <button class="btn small" id="btnShare">共有</button>
+        <button class="btn small" id="btnCopy">結果をコピー</button>
+      </div>
+
+      <div class="card note">
+        ・スコア：距離のみ（運ゲー）。戦闘/装備/レベル/HP/MP/ランドマーク/宝箱はスコア無関係。<br>
+        ・ランキング：端末内（LocalStorage）に Top10 を保存します。<br>
+        ・調整：<span class="kbd">FALL_RATE</span> / <span class="kbd">BASE_SPEED</span> / <span class="kbd">ENCOUNTER_MIN/MAX</span> / <span class="kbd">LANDMARK_MIN/MAX</span>。
+      </div>
+    </div>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ==============================
+  // 調整パラメータ
+  // ==============================
+  const BASE_SPEED = 8.4;
+  const SPEED_RAMP = 0.018;
+  const FALL_RATE  = 0.0108;
+  const BUMPINESS  = 0.98;
+  const CAMERA_LAG = 0.09;
+  const GRAVITY    = 34.0;
+  const FALL_SHOW_SEC = 0.85;
+
+  const ENCOUNTER_MIN = 520;
+  const ENCOUNTER_MAX = 920;
+  const ITEM_MIN = 460;
+  const ITEM_MAX = 860;
+  const LANDMARK_MIN = 820;
+  const LANDMARK_MAX = 1500;
+
+  const RARE_ENEMY_RATE = 0.08;  // 遭遇の一部がレア敵
+  const RARE_CHEST_RATE = 0.10;  // 宝箱の一部がレア箱
+
+  // ボス（スコア無関係）
+  const BOSS_MIN_DIST = 170;   // m
+  const BOSS_MAX_DIST = 260;   // m
+
+  // ==============================
+  // データ
+  // ==============================
+  const CLASSES = [
+    { key:'hero',  name:'ゆうしゃ',     main:'#7cc9ff', effect:'slash' },
+    { key:'mage',  name:'まほうつかい', main:'#c67cff', effect:'spell' },
+    { key:'thief', name:'とうぞく',     main:'#7cf7c2', effect:'multi' },
+    { key:'war',   name:'せんし',       main:'#ffb36b', effect:'heavy' },
+  ];
+
+  const MONSTERS = [
+    { name:'スライム',   icon:'🟦', tone:560 },
+    { name:'ゴースト',   icon:'👻', tone:520 },
+    { name:'ゴブリン',   icon:'👺', tone:480 },
+    { name:'ドラキー',   icon:'🦇', tone:620 },
+    { name:'キメラ',     icon:'🪽', tone:660 },
+    { name:'メタル？',   icon:'⬜', tone:740 },
+  ];
+
+  const RARE_MONSTERS = [
+    { name:'キングスライム', icon:'🟪', tone:820 },
+    { name:'ゴールデンゴブリン', icon:'🟨', tone:900 },
+    { name:'あやしい影', icon:'🟥', tone:860 },
+  ];
+
+  const WEAPONS = [
+    { name:'どうのつるぎ', icon:'🗡️', power:1, blade:'#d9b27b' },
+    { name:'てつのやり',   icon:'🔱', power:2, blade:'#cfd8e3' },
+    { name:'ぎんのつるぎ', icon:'🗡️', power:3, blade:'#e6f0ff' },
+    { name:'まほうのつえ', icon:'🪄', power:2, blade:'#c67cff' },
+    { name:'でんせつのけん', icon:'🗡️', power:5, blade:'#7cf7c2' },
+  ];
+
+  const LOOT = [
+    { type:'loot', name:'きんか', icon:'🪙' },
+    { type:'loot', name:'やくそう', icon:'🌿' },
+    { type:'loot', name:'せいすい', icon:'🧴' },
+    { type:'loot', name:'ちいさなメダル', icon:'🟡' },
+  ];
+
+  const CHESTS = [
+    { type:'chest', name:'たからばこ', icon:'🧰' },
+    { type:'chest', name:'あやしいはこ', icon:'📦' },
+  ];
+
+  const RARE_CHESTS = [
+    { type:'chest', name:'ゴールドたからばこ', icon:'💰' },
+    { type:'chest', name:'ミミック？（たぶん）', icon:'🧲' },
+  ];
+
+  const LANDMARKS = [
+    { name:'村', icon:'🏘️', xp:8,  kind:'town' },
+    { name:'宿屋', icon:'🛏️', xp:10, kind:'inn' },
+    { name:'洞窟', icon:'🕳️', xp:12, kind:'cave' },
+    { name:'城', icon:'🏰', xp:16, kind:'castle' },
+    { name:'ほこら', icon:'⛩️', xp:10, kind:'shrine' },
+    { name:'橋', icon:'🌉', xp:9,  kind:'bridge' },
+    { name:'森', icon:'🌲', xp:11, kind:'forest' },
+  ];
+
+  const FALL_CAUSES = [
+    'いしにつまずいた',
+    'くつひもがほどけた',
+    'かぜがつよかった',
+    'みえないだんさ',
+    'じゅうりょくがつよい',
+    'せかいのいし',
+    'あしがわらった',
+  ];
+
+  const BOSSES = [
+    { name:'ドラゴン', icon:'🐉', tone:220 },
+    { name:'まおう？', icon:'😈', tone:196 },
+    { name:'ギガント', icon:'🗿', tone:174 },
+  ];
+
+  // ==============================
+  // DOM
+  // ==============================
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+
+  const elCur = document.getElementById('cur');
+  const elDaily = document.getElementById('daily');
+  const elBest = document.getElementById('best');
+  const elKills = document.getElementById('kills');
+
+  const btnStart = document.getElementById('btnStart');
+  const btnText = document.getElementById('btnText');
+  const swSound = document.getElementById('swSound');
+  const swVibe = document.getElementById('swVibe');
+
+  const btnShare = document.getElementById('btnShare');
+  const btnCopy = document.getElementById('btnCopy');
+
+  // ==============================
+  // LocalStorage
+  // ==============================
+  const STORE_KEY_BEST = 'dqfall-best-v3';
+  const STORE_KEY_DAILY_PREFIX = 'dqfall-daily-v3-';
+  const STORE_KEY_RANKING = 'dqfall-ranking-v3';
+  const STORE_KEY_SOUND = 'dqfall-sound-v3';
+  const STORE_KEY_VIBE  = 'dqfall-vibe-v3';
+
+  function todayKey(){
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,'0');
+    const day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function loadRanking(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY_RANKING);
+      if (!raw) return [];
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  }
+
+  function saveRanking(arr){
+    try{ localStorage.setItem(STORE_KEY_RANKING, JSON.stringify(arr)); } catch {}
+  }
+
+  let best = Number(localStorage.getItem(STORE_KEY_BEST) || '0');
+  let dailyBest = Number(localStorage.getItem(STORE_KEY_DAILY_PREFIX + todayKey()) || '0');
+  let ranking = loadRanking();
+
+  // ==============================
+  // Audio
+  // ==============================
+  let audioCtx = null;
+
+  // 設定（重複宣言しない）
+  let soundOn = (localStorage.getItem(STORE_KEY_SOUND) ?? '1') === '1';
+  let vibeOn  = (localStorage.getItem(STORE_KEY_VIBE) ?? '0') === '1';
+
+  // 歩行BGMっぽいSE（著作物の旋律コピーは避けつつ「行進感」を出す）
+  let walkTimer = null;
+  let walkStep = 0;
+  function startWalkBGM(){
+    stopWalkBGM();
+    if (!soundOn) return;
+    ensureAudio();
+    // 6/8っぽいノリの短い動機をループ（あくまで効果音寄り）
+    const motif = [
+      {f:392, d:0.05, v:0.06},
+      {f:523, d:0.05, v:0.06},
+      {f:659, d:0.06, v:0.06},
+      {f:523, d:0.05, v:0.05},
+      {f:440, d:0.06, v:0.05},
+      {f:523, d:0.06, v:0.05},
+    ];
+    walkStep = 0;
+    walkTimer = setInterval(() => {
+      if (mode !== MODE.RUN || !soundOn) return;
+      const foot = (walkStep % 2 === 0) ? 196 : 220;
+      tone([{f:foot, d:0.03, v:0.035, g:0.0}], 'square');
+      if ((walkStep % 6) === 0) tone(motif, 'triangle');
+      walkStep++;
+    }, 220);
+  }
+  function stopWalkBGM(){
+    if (walkTimer){ clearInterval(walkTimer); walkTimer = null; }
+  }
+
+  function ensureAudio(){
+    if (!soundOn) return;
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
+  }
+
+  function tone(seq, type='square'){
+    if (!soundOn) return;
+    ensureAudio();
+    if (!audioCtx) return;
+    let t = audioCtx.currentTime;
+    for (const s of seq){
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.value = s.f;
+      o.connect(g); g.connect(audioCtx.destination);
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(s.v ?? 0.12, t + 0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + s.d);
+      o.start(t);
+      o.stop(t + s.d + 0.02);
+      t += s.d + (s.g ?? 0.02);
+    }
+  }
+
+  const SFX = {
+    start: () => tone([{f:330,d:0.07},{f:440,d:0.07},{f:660,d:0.10,g:0.04}]),
+    msg:   () => tone([{f:880,d:0.04,v:0.09}]),
+    approach: (f) => tone([{f, d:0.05, v:0.08},{f:f*0.8, d:0.05, v:0.08}], 'square'),
+    hit:   () => tone([{f:220,d:0.05,v:0.12},{f:140,d:0.07,v:0.10}]),
+    item:  () => tone([{f:784,d:0.06,v:0.10},{f:988,d:0.08,v:0.10}]),
+    fall:  () => tone([{f:196,d:0.08,v:0.12},{f:110,d:0.14,v:0.10,g:0.04}]),
+    best:  () => tone([{f:523,d:0.08,v:0.11},{f:659,d:0.08,v:0.11},{f:784,d:0.10,v:0.12,g:0.05}]),
+    spell: () => tone([{f:988,d:0.05,v:0.10},{f:1318,d:0.06,v:0.10},{f:1760,d:0.08,v:0.10,g:0.04}], 'sine'),
+
+    // レベルアップ：著作物の旋律コピーは避けつつ「ファンファーレ感」を狙ったオリジナル
+    level: () => tone(
+      [
+        {f:523,d:0.09,v:0.11},{f:659,d:0.09,v:0.11},{f:784,d:0.10,v:0.12,g:0.03},
+        {f:659,d:0.08,v:0.11},{f:784,d:0.08,v:0.12},{f:988,d:0.14,v:0.12,g:0.04},
+        {f:1046,d:0.18,v:0.12,g:0.06},
+      ],
+      'triangle'
+    ),
+
+    rare:  () => tone([{f:988,d:0.06,v:0.10},{f:1318,d:0.06,v:0.10},{f:1760,d:0.10,v:0.11,g:0.04}], 'sawtooth'),
+
+    // 宿屋・回復
+    inn: () => tone([{f:392,d:0.08,v:0.10},{f:494,d:0.10,v:0.10},{f:659,d:0.14,v:0.11,g:0.04}], 'triangle'),
+
+    // ボス出現
+    boss: () => tone([{f:220,d:0.10,v:0.11},{f:196,d:0.10,v:0.11},{f:174,d:0.14,v:0.11,g:0.05}], 'sawtooth'),
+  };
+
+  function vibrate(pattern){
+    if (!vibeOn) return;
+    if (navigator.vibrate) navigator.vibrate(pattern);
+  }
+
+  function syncToggles(){
+    swSound.classList.toggle('on', soundOn);
+    swVibe.classList.toggle('on', vibeOn);
+  }
+
+  // ==============================
+  // RNG
+  // ==============================
+  let rng = mulberry32((Date.now() ^ (Math.random()*1e9)) >>> 0);
+  function mulberry32(a){
+    return function(){
+      let t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  // ==============================
+  // State
+  // ==============================
+  const MODE = { READY:0, RUN:1, FALLING:2, RESULT:3 };
+  let mode = MODE.READY;
+
+  let dist = 0;
+  let speed = 0;
+  let camX = 0;
+
+  let heroClass = null;
+  let equipped = null;
+
+  // RPG-ish status (演出用)
+  let level = 1;
+  let xp = 0;
+  let nextXp = 20;
+  let hp = 18, maxHp = 18;
+  let mp = 8,  maxMp = 8;
+
+  let kills = 0;
+  let inventory = [];
+  let landmarksSeen = [];
+  let rareCount = 0;
+
+  let logLines = [];
+  let lastCause = '';
+  let title = '';
+
+  let msg = { text:'', t:0, dur:0 };
+
+  let nextEncounterX = 900;
+  let nextItemX = 780;
+  let nextLandmarkX = 1100;
+
+  // boss
+  let bossDist = 220;
+  let bossDone = false;
+
+  // active: battle/item/landmark/boss/fall
+  let active = null;
+
+  // particles
+  let particles = [];
+
+  const hero = {
+    x:0, y:0, vy:0,
+    tilt:0, rag:0, ragV:0,
+    step:0,
+    crown:false,
+  };
+
+  // ==============================
+  // Terrain
+  // ==============================
+  function groundY(x){
+    const a = 22 * BUMPINESS;
+    const b = 12 * BUMPINESS;
+    const c = 8  * BUMPINESS;
+    return 520
+      + Math.sin(x * 0.016) * a
+      + Math.sin(x * 0.043 + 1.9) * b
+      + Math.sin(x * 0.085 + 0.7) * c;
+  }
+
+  function groundSlope(x){
+    const e = 2.0;
+    return (groundY(x+e) - groundY(x-e)) / (2*e);
+  }
+
+  // ==============================
+  // UI helpers
+  // ==============================
+  function fmt(m){ return (Math.max(0,m)).toFixed(1) + ' m'; }
+
+  function sync(){
+    elCur.textContent = fmt(dist);
+    elBest.textContent = fmt(best);
+    elDaily.textContent = fmt(dailyBest);
+    elKills.textContent = String(kills);
+  }
+
+  function pushLog(s){
+    logLines.push(s);
+    if (logLines.length > 16) logLines.shift();
+  }
+
+  function showMsg(text, dur=0.95){
+    msg.text = text;
+    msg.t = 0;
+    msg.dur = dur;
+    SFX.msg();
+  }
+
+  function addXP(amount, reason){
+    xp += amount;
+    if (reason) pushLog(`＋${amount}EXP（${reason}）`);
+    while (xp >= nextXp){
+      xp -= nextXp;
+      level += 1;
+      nextXp = Math.floor(nextXp * 1.25 + 6);
+      // 演出上のステ上昇
+      maxHp += 2;
+      maxMp += 1;
+      hp = Math.min(maxHp, hp + 3);
+      mp = Math.min(maxMp, mp + 2);
+      pushLog(`★ レベルが ${level} に あがった！`);
+      showMsg(`レベルが ${level} に あがった！`, 1.2);
+      SFX.level();
+      vibrate([10, 30, 10]);
+      spawnBurst(hero.x + 80, hero.y - 40, heroClass ? heroClass.main : 'rgba(255,255,255,0.9)');
+    }
+  }
+
+  // ==============================
+  // Controls
+  // ==============================
+  cv.addEventListener('pointerdown', () => triggerStart(), {passive:true});
+  btnStart.addEventListener('click', () => triggerStart());
+
+  function triggerStart(){
+    if (mode === MODE.RUN || mode === MODE.FALLING) return;
+    // 音はユーザー操作で起動できるので、ここでAudioContextを起こしておく
+    ensureAudio();
+    startRun();
+  }
+
+  swSound.addEventListener('click', () => {
+    soundOn = !soundOn;
+    try{ localStorage.setItem(STORE_KEY_SOUND, soundOn ? '1':'0'); } catch {}
+    syncToggles();
+    if (soundOn){ ensureAudio(); SFX.msg(); if (mode === MODE.RUN) startWalkBGM(); }
+    else { stopWalkBGM(); }
+  });
+
+  swVibe.addEventListener('click', () => {
+    vibeOn = !vibeOn;
+    try{ localStorage.setItem(STORE_KEY_VIBE, vibeOn ? '1':'0'); } catch {}
+    syncToggles();
+    vibrate(15);
+  });
+
+  btnShare.addEventListener('click', async () => {
+    const text = shareText();
+    try{
+      if (navigator.share){
+        await navigator.share({ text, title: '勇者が勝手に転ぶ冒険' });
+        showMsg('共有しました', 0.8);
+      } else {
+        await copyText(text);
+        showMsg('コピーしました', 0.8);
+      }
+    } catch {
+      showMsg('共有を中断', 0.8);
+    }
+  });
+
+  btnCopy.addEventListener('click', async () => {
+    await copyText(shareText());
+    showMsg('結果をコピー', 0.8);
+  });
+
+  async function copyText(text){
+    try{ await navigator.clipboard.writeText(text); }
+    catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  }
+
+  function shareText(){
+    const cls = heroClass ? heroClass.name : '？？？';
+    const inv = inventory.slice(0, 8).map(i => `${i.icon}${i.name}`).join(' / ');
+    const more = inventory.length > 8 ? ` (+${inventory.length-8})` : '';
+    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
+    const lm = landmarksSeen.slice(0,6).map(l => `${l.icon}${l.name}`).join(' / ');
+    const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
+    return `勇者が勝手に転ぶ冒険\n職業：${cls} Lv${level}\n称号：${title || '—'}\n距離：${fmt(dist)}\n討伐：${kills}（レア${rareCount}）\n武器：${wpn}\n入手：${inventory.length ? (inv + more) : 'なし'}\n地点：${landmarksSeen.length ? (lm + lmMore) : 'なし'}\n転倒：${lastCause || '—'}`;
+  }
+
+  // ==============================
+  // Start / Fall / Result
+  // ==============================
+  function startRun(){
+    mode = MODE.RUN;
+    dist = 0;
+    speed = BASE_SPEED;
+    camX = 0;
+
+    heroClass = CLASSES[Math.floor(rng()*CLASSES.length)];
+    equipped = null;
+
+    level = 1;
+    xp = 0;
+    nextXp = 20;
+    maxHp = 18;
+    maxMp = 8;
+    hp = maxHp;
+    mp = maxMp;
+
+    hero.x = 0;
+    hero.vy = 0;
+    hero.tilt = 0;
+    hero.rag = 0;
+    hero.ragV = 0;
+    hero.step = 0;
+    hero.crown = false;
+
+    kills = 0;
+    inventory = [];
+    landmarksSeen = [];
+    rareCount = 0;
+
+    logLines = [];
+    lastCause = '';
+    title = '';
+
+    nextEncounterX = 680 + Math.floor(rng()*220);
+    nextItemX = 520 + Math.floor(rng()*240);
+    nextLandmarkX = 900 + Math.floor(rng()*380);
+
+    // ボス（スコア無関係）
+    bossDone = false;
+    bossDist = BOSS_MIN_DIST + rng()*(BOSS_MAX_DIST - BOSS_MIN_DIST);
+
+    active = null;
+    particles = [];
+
+    rng = mulberry32(((Date.now() + Math.floor(Math.random()*1e9)) ^ 0xC0FFEE) >>> 0);
+
+    btnText.textContent = '冒険中…';
+    SFX.start();
+    vibrate(18);
+    if (soundOn) startWalkBGM();
+
+    pushLog(`▶ ${heroClass.name} は たびにでた！`);
+    showMsg(`${heroClass.name} に きまりました`, 1.1);
+
+    sync();
+  }
+
+  function startFalling(){
+    mode = MODE.FALLING;
+
+    hero.vy = -7 - rng()*9;
+    hero.rag = hero.tilt;
+    hero.ragV = (rng() < 0.5 ? -1 : 1) * (4 + rng()*7);
+
+    lastCause = FALL_CAUSES[Math.floor(rng()*FALL_CAUSES.length)];
+    pushLog(`▼ ${heroClass.name} は ${lastCause}`);
+
+    SFX.fall();
+    vibrate([18, 30, 12]);
+
+    active = { type:'fall', t:0 };
+  }
+
+  function computeTitle(){
+    const d = dist;
+    const k = kills;
+    const inv = inventory.length;
+    const lm = landmarksSeen.length;
+    const w = equipped ? equipped.power : 0;
+
+    if (rareCount >= 3) return 'レア狩りマスター';
+    if (rareCount >= 1 && d < 70) return 'レアを見て転ぶ者';
+    if (level >= 6 && d < 90) return '育っても転ぶ';
+
+    if (equipped && equipped.name === 'でんせつのけん' && d < 60) return '伝説を持って転ぶ者';
+    if (k >= 10 && d < 80) return '戦闘狂（転倒）';
+    if (inv >= 12) return '拾い物名人';
+    if (lm >= 4 && d >= 120) return '旅の記録者';
+
+    if (d >= 280) return '世界を走破した';
+    if (d >= 210) return '転ばぬ勇者（仮）';
+    if (d >= 150) return '鋼の足腰';
+    if (d >= 95)  return '冒険者見習い';
+
+    if (w >= 3) return '装備だけは一流';
+    if (k >= 3) return '初級討伐王';
+    return '転倒の素質';
+  }
+
+  function updateRanking(){
+    const entry = {
+      ts: Date.now(),
+      dist: Number(dist.toFixed(1)),
+      cls: heroClass ? heroClass.name : '？？？',
+      lv: level,
+      title: title || '',
+      kills,
+      rare: rareCount,
+    };
+
+    ranking.push(entry);
+    ranking.sort((a,b) => b.dist - a.dist);
+    ranking = ranking.slice(0, 10);
+    saveRanking(ranking);
+  }
+
+  function finalizeResult(){
+    stopWalkBGM();
+    mode = MODE.RESULT;
+    btnText.textContent = 'もう一回';
+
+    title = computeTitle();
+
+    let isBest = false;
+    if (dist > best){
+      best = dist;
+      localStorage.setItem(STORE_KEY_BEST, String(best));
+      isBest = true;
+    }
+    if (dist > dailyBest){
+      dailyBest = dist;
+      localStorage.setItem(STORE_KEY_DAILY_PREFIX + todayKey(), String(dailyBest));
+    }
+
+    updateRanking();
+
+    if (isBest){
+      SFX.best();
+      vibrate([25, 40, 25]);
+      pushLog('★ さいこうきろく！');
+      showMsg('さいこうきろく！', 1.2);
+    } else {
+      showMsg('つぎは いける', 1.0);
+    }
+
+    pushLog(`◆ しょうごう：${title}`);
+
+    sync();
+  }
+
+  // ==============================
+  // Loop
+  // ==============================
+  let lastT = performance.now();
+  requestAnimationFrame(loop);
+
+  function loop(now){
+    const dt = Math.min(0.033, (now - lastT) / 1000);
+    lastT = now;
+    update(dt);
+    render();
+    requestAnimationFrame(loop);
+  }
+
+  function update(dt){
+    // message
+    if (msg.dur > 0){
+      msg.t += dt;
+      if (msg.t >= msg.dur){ msg.text = ''; msg.dur = 0; }
+    }
+
+    // particles
+    for (const p of particles){
+      p.life -= dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.vy += 140 * dt;
+    }
+    particles = particles.filter(p => p.life > 0);
+
+    if (mode === MODE.RUN){
+      dist += speed * dt;
+      speed += (SPEED_RAMP * dt) * (1 + dist * 0.0010);
+
+      hero.x = dist * 40;
+      hero.step += dt * (9.4 + speed*0.35);
+
+      const gy = groundY(hero.x);
+      hero.y = gy - 62;
+
+      const slope = groundSlope(hero.x);
+      const targetTilt = clamp(slope * 0.030, -0.40, 0.40);
+      hero.tilt += (targetTilt - hero.tilt) * 0.14;
+
+      const targetCam = hero.x - 320;
+      camX += (targetCam - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
+
+      // 簡易HP/MP変動（演出）
+      if (rng() < 0.01 * dt * 60){
+        hp = clamp(hp - (rng()<0.5?1:0), 0, maxHp);
+        mp = clamp(mp - (rng()<0.35?1:0), 0, maxMp);
+      }
+
+      // ボス発生（スコア無関係・演出のみ）
+      if (!active && !bossDone && dist >= bossDist){
+        const b = BOSSES[Math.floor(rng()*BOSSES.length)];
+        active = {
+          type:'boss',
+          t:0,
+          phase:0,
+          boss:b,
+          mx: hero.x + 560,
+          my: groundY(hero.x + 560) - 130,
+        };
+        bossDone = true;
+        pushLog(`！！ ${b.name} が あらわれた`);
+        showMsg(`${b.name} が あらわれた！`, 1.1);
+        SFX.boss();
+        vibrate([18, 24, 18]);
+      }
+
+      // Battle schedule
+      if (!active && hero.x >= nextEncounterX){
+        const isRare = rng() < RARE_ENEMY_RATE;
+        const m = isRare ? RARE_MONSTERS[Math.floor(rng()*RARE_MONSTERS.length)] : MONSTERS[Math.floor(rng()*MONSTERS.length)];
+        active = {
+          type:'battle',
+          t:0,
+          phase:0,
+          monster:m,
+          rare:isRare,
+          mx: hero.x + 520,
+          my: groundY(hero.x + 520) - 110,
+        };
+        pushLog(`！ ${m.name} が あらわれた` + (isRare ? '（レア）' : ''));
+        showMsg(`${m.name} が あらわれた`, 1.0);
+        if (isRare){ SFX.rare(); vibrate([12,18,12]); }
+        else { SFX.approach(m.tone); vibrate(10); }
+
+        nextEncounterX += ENCOUNTER_MIN + Math.floor(rng()*(ENCOUNTER_MAX-ENCOUNTER_MIN));
+      }
+
+      // Item schedule
+      if (!active && hero.x >= nextItemX){
+        const roll = rng();
+        let it;
+        if (roll < 0.30){
+          const isRare = rng() < RARE_CHEST_RATE;
+          it = isRare ? RARE_CHESTS[Math.floor(rng()*RARE_CHESTS.length)] : CHESTS[Math.floor(rng()*CHESTS.length)];
+          it = { ...it, rare: isRare };
+        } else if (roll < 0.62){
+          it = WEAPONS[Math.floor(rng()*WEAPONS.length)];
+        } else {
+          it = LOOT[Math.floor(rng()*LOOT.length)];
+        }
+
+        active = { type:'item', t:0, data:it };
+
+        if (it.type === 'loot'){
+          inventory.push({ icon: it.icon, name: it.name, type: 'loot' });
+          pushLog(`♪ ${it.name} を てにいれた`);
+          showMsg(`${it.name} を てにいれた`, 1.0);
+          addXP(4 + Math.floor(rng()*3), 'ひろいもの');
+          hp = clamp(hp + (it.name==='やくそう'?3:0), 0, maxHp);
+          mp = clamp(mp + (it.name==='せいすい'?2:0), 0, maxMp);
+
+        } else if (it.type === 'chest'){
+          const rare = !!it.rare;
+          inventory.push({ icon: it.icon, name: it.name, type: 'chest' });
+          pushLog(`♪ ${it.name} を みつけた` + (rare ? '（レア）' : ''));
+          showMsg(`${it.name} を みつけた`, 1.0);
+          if (rare){
+            rareCount += 1;
+            SFX.rare();
+            vibrate([12,18,12]);
+            addXP(14 + Math.floor(rng()*8), 'レアたから');
+            spawnBurst(hero.x + 220, hero.y - 60, 'rgba(255,215,90,0.95)');
+          } else {
+            SFX.item();
+            vibrate(12);
+            addXP(9 + Math.floor(rng()*5), 'たから');
+          }
+
+        } else {
+          equipped = it;
+          inventory.push({ icon: it.icon, name: it.name, type: 'weapon' });
+          pushLog(`♪ ${it.name} を そうびした`);
+          showMsg(`${it.name} を そうびした`, 1.0);
+          SFX.item();
+          vibrate(12);
+          addXP(7 + it.power, 'そうび');
+        }
+
+        nextItemX += ITEM_MIN + Math.floor(rng()*(ITEM_MAX-ITEM_MIN));
+      }
+
+      // Landmark schedule
+      if (!active && hero.x >= nextLandmarkX){
+        const lm = LANDMARKS[Math.floor(rng()*LANDMARKS.length)];
+        active = { type:'landmark', t:0, data: lm, x: hero.x + 520, y: groundY(hero.x + 520) - 120 };
+        landmarksSeen.push(lm);
+        pushLog(`◆ ${lm.name} に とうちゃく`);
+        showMsg(`${lm.name} に とうちゃく`, 1.0);
+
+        if (lm.kind === 'inn'){
+          // 宿屋は専用SE＋大回復
+          SFX.inn();
+          vibrate([8, 12, 8]);
+          hp = maxHp;
+          mp = maxMp;
+          addXP(lm.xp + 6, `やどや（${lm.name}）`);
+          pushLog('◎ HP/MP が かいふくした');
+        } else {
+          SFX.item();
+          vibrate(10);
+          addXP(lm.xp, `ちてん（${lm.name}）`);
+          hp = clamp(hp + 2, 0, maxHp);
+          mp = clamp(mp + 1, 0, maxMp);
+        }
+
+        nextLandmarkX += LANDMARK_MIN + Math.floor(rng()*(LANDMARK_MAX-LANDMARK_MIN));
+      }
+
+      // process active
+      if (active){
+        active.t += dt;
+
+        // 近づき
+        if (active.type === 'battle' || active.type === 'boss'){
+          const targetX = hero.x + 230;
+          const approachSpeed = 520;
+          if (active.mx > targetX) active.mx -= approachSpeed * dt;
+        }
+
+        // battle
+        if (active.type === 'battle'){
+          if (active.t >= 0.65 && active.phase === 0){
+            active.phase = 1;
+            doAttackEffect(active);
+          }
+
+          if (active.t >= 1.10 && active.phase === 1){
+            active.phase = 2;
+            spawnPuff(active.mx, active.my, heroClass.main);
+            SFX.hit();
+            vibrate([10, 20, 10]);
+            pushLog(`→ ${active.monster.name} を たおした` + (active.rare ? '（レア）' : ''));
+            kills += 1;
+            addXP(active.rare ? (18 + Math.floor(rng()*10)) : (10 + Math.floor(rng()*6)), active.rare ? 'レア討伐' : '討伐');
+            mp = clamp(mp - (heroClass.key==='mage' ? 2 : 1), 0, maxMp);
+            hp = clamp(hp - (active.rare ? 2 : 1), 0, maxHp);
+
+            if (active.rare){
+              rareCount += 1;
+              spawnBurst(active.mx, active.my - 10, 'rgba(255,215,90,0.95)');
+            }
+            showMsg(`${active.monster.name} を たおした`, 0.95);
+          }
+
+          if (active.t >= 1.35){
+            active = null;
+          }
+
+        // boss
+        } else if (active.type === 'boss'){
+          // 演出を少し長めにして「ボス戦」感
+          if (active.t >= 0.80 && active.phase === 0){
+            active.phase = 1;
+            doBossAttackEffect(active);
+          }
+
+          if (active.t >= 1.35 && active.phase === 1){
+            active.phase = 2;
+            spawnPuff(active.mx, active.my, 'rgba(255,255,255,0.9)');
+            SFX.hit();
+            vibrate([14, 22, 14]);
+            pushLog(`→ ${active.boss.name} を しりぞけた`);
+            // 報酬（スコア無関係だが、育つ）
+            addXP(22 + Math.floor(rng()*10), 'ボス');
+            hp = clamp(hp - 2, 0, maxHp);
+            mp = clamp(mp - 1, 0, maxMp);
+            spawnBurst(active.mx, active.my - 12, 'rgba(255,90,90,0.95)');
+            showMsg(`${active.boss.name} を しりぞけた！`, 1.0);
+          }
+
+          if (active.t >= 1.70){
+            active = null;
+          }
+
+        } else if (active.type === 'item'){
+          if (active.t >= 0.95) active = null;
+
+        } else if (active.type === 'landmark'){
+          if (active.t >= 1.05) active = null;
+        }
+      }
+
+      // Fall check
+      const chaos = (rng() - 0.5) * 0.95;
+      const slopeRisk = Math.abs(slope) / 30;
+      const fatigue = dist * 0.00018;
+      const p = FALL_RATE * (0.55 + slopeRisk + fatigue) * (1 + chaos);
+      if (rng() < clamp(p, 0, 0.16) * dt * 60){
+        startFalling();
+      }
+
+      if (best >= 180) hero.crown = true;
+      sync();
+
+    } else if (mode === MODE.FALLING){
+      if (active) active.t += dt;
+
+      hero.vy += GRAVITY * dt;
+      hero.y += hero.vy * 24 * dt;
+      hero.rag += hero.ragV * dt;
+      hero.ragV *= (1 - 0.9*dt);
+
+      const gy = groundY(hero.x) - 42;
+      if (hero.y > gy){
+        hero.y = gy;
+        hero.vy *= -0.35;
+        hero.ragV *= 0.85;
+        if (Math.abs(hero.vy) < 2.0) hero.vy = 0;
+      }
+
+      hero.x += 110 * dt;
+      camX += ((hero.x - 320) - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
+
+      if (active && active.t >= FALL_SHOW_SEC){
+        finalizeResult();
+      }
+
+      sync();
+
+    } else {
+      btnText.textContent = (best > 0) ? 'もう一回' : '冒険をはじめる';
+    }
+  }
+
+  function doAttackEffect(ev){
+    const cls = heroClass.effect;
+    const hx = hero.x + 70;
+    const hy = hero.y - 12;
+    const mx = ev.mx;
+    const my = ev.my;
+
+    if (cls === 'spell'){
+      for (let i=0;i<10;i++){
+        const a = -0.2 + rng()*0.4;
+        const sp = 520 + rng()*260;
+        particles.push({ x:hx, y:hy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.25, kind:'spark', color:heroClass.main });
+      }
+      SFX.spell();
+      vibrate(10);
+      pushLog('＊ まほう！');
+
+    } else if (cls === 'multi'){
+      for (let i=0;i<3;i++){
+        particles.push({ x:mx - 30, y:my - 16 + i*14, vx:-80, vy:-40 + i*20, life:0.25, kind:'slash', color:'rgba(255,255,255,0.9)' });
+      }
+      SFX.hit();
+      vibrate(12);
+      pushLog('≡ れんげき');
+
+    } else if (cls === 'heavy'){
+      spawnPuff(mx, my, 'rgba(255,255,255,0.9)');
+      for (let i=0;i<8;i++){
+        const a = rng()*Math.PI*2;
+        const sp = 280 + rng()*260;
+        particles.push({ x:mx, y:my, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 120, life:0.42 + rng()*0.22, kind:'spark', color:'rgba(255,255,255,0.85)' });
+      }
+      SFX.hit();
+      vibrate([12, 18, 12]);
+      pushLog('！ つうこん');
+
+    } else {
+      particles.push({ x:mx-28, y:my-10, vx:-120, vy:-40, life:0.28, kind:'slash', color:'rgba(255,255,255,0.9)' });
+      SFX.hit();
+      vibrate(12);
+      pushLog('／ こうげき');
+    }
+
+    if (ev.rare){
+      spawnBurst(mx, my - 10, 'rgba(255,215,90,0.95)');
+    }
+  }
+
+  function doBossAttackEffect(ev){
+    // ボス用：ちょい派手
+    const mx = ev.mx;
+    const my = ev.my;
+    spawnBurst(mx, my - 12, 'rgba(255,90,90,0.95)');
+    for (let i=0;i<10;i++){
+      const a = rng()*Math.PI*2;
+      const sp = 320 + rng()*360;
+      particles.push({ x:mx, y:my, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.28, kind:'spark', color:'rgba(255,90,90,0.85)' });
+    }
+    SFX.spell();
+    vibrate([10, 18, 10]);
+    pushLog('！ ひっさつ');
+  }
+
+  function spawnPuff(x,y,color){
+    for (let i=0;i<10;i++){
+      const a = rng()*Math.PI*2;
+      const sp = 160 + rng()*220;
+      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 120, life:0.35 + rng()*0.25, kind:'puff', color });
+    }
+  }
+
+  function spawnBurst(x,y,color){
+    for (let i=0;i<18;i++){
+      const a = rng()*Math.PI*2;
+      const sp = 220 + rng()*360;
+      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 180, life:0.55 + rng()*0.30, kind:'spark', color });
+    }
+  }
+
+  // ==============================
+  // Render
+  // ==============================
+  function render(){
+    const W = cv.width, H = cv.height;
+    const glow = clamp(best / 220, 0, 1);
+
+    ctx.clearRect(0,0,W,H);
+
+    // stars
+    ctx.globalAlpha = 0.42 + glow*0.20;
+    const starN = 30 + Math.floor(glow*34);
+    for (let i=0;i<starN;i++){
+      const x = (i*137.5 + (camX*0.04)) % W;
+      const y = (i*i*17.2) % (H*0.55);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(x, y, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+
+    // aurora
+    ctx.save();
+    const ag = ctx.createLinearGradient(0, 0, 0, H);
+    ag.addColorStop(0, `rgba(124,201,255,${0.08 + glow*0.12})`);
+    ag.addColorStop(1, `rgba(124,247,194,${0.00 + glow*0.08})`);
+    ctx.fillStyle = ag;
+    ctx.fillRect(0,0,W,H);
+    ctx.restore();
+
+    // world
+    ctx.save();
+    ctx.translate(-camX, 0);
+
+    // ground
+    ctx.beginPath();
+    const startX = camX - 120;
+    const endX = camX + W + 120;
+    ctx.moveTo(startX, H);
+    for (let x = startX; x <= endX; x += 12){
+      ctx.lineTo(x, groundY(x));
+    }
+    ctx.lineTo(endX, H);
+    ctx.closePath();
+
+    const g = ctx.createLinearGradient(0, 420, 0, H);
+    g.addColorStop(0, `rgba(124,201,255,${0.10 + glow*0.10})`);
+    g.addColorStop(1, 'rgba(255,255,255,0.00)');
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    // line
+    ctx.beginPath();
+    for (let x = startX; x <= endX; x += 10){
+      ctx.lineTo(x, groundY(x));
+    }
+    ctx.strokeStyle = `rgba(255,255,255,${0.10 + glow*0.06})`;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // landmark in world
+    if (active && active.type === 'landmark' && mode === MODE.RUN){
+      drawLandmark(ctx, active);
+    }
+
+    // monster/boss in world
+    if (active && mode === MODE.RUN){
+      if (active.type === 'battle') drawMonster(ctx, active);
+      if (active.type === 'boss') drawBoss(ctx, active);
+    }
+
+    // item in world
+    if (active && active.type === 'item' && mode === MODE.RUN){
+      drawItem(ctx, active, hero.x + 520, groundY(hero.x + 520) - 120);
+    }
+
+    // hero
+    const running = (mode === MODE.RUN);
+    const ang = running ? hero.tilt : (hero.rag + 1.1);
+    drawHero(ctx, hero.x, hero.y, ang, running, glow);
+
+    // particles
+    drawParticlesWorld(ctx);
+
+    ctx.restore();
+
+    drawHUD(W, H, glow);
+
+    if (mode === MODE.READY){
+      drawCenterCard(W, H, glow, 'タップで ぼうけん', 'しょくぎょうは かってに きまります');
+    } else if (mode === MODE.RESULT){
+      drawResultCard(W, H, glow);
+    }
+  }
+
+  function drawLandmark(ctx, ev){
+    ctx.save();
+    ctx.translate(ev.x, ev.y);
+    ctx.globalAlpha = 0.98;
+    ctx.font = '28px ui-sans-serif, system-ui, -apple-system';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ev.data.icon, 0, 0);
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    ctx.font = '14px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(ev.data.name, 0, 30);
+    ctx.restore();
+  }
+
+  function drawBoss(ctx, ev){
+    ctx.save();
+    ctx.translate(ev.mx, ev.my);
+
+    ctx.globalAlpha = 0.20;
+    ctx.beginPath();
+    ctx.arc(0, 0, 64, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,90,90,0.75)';
+    ctx.fill();
+
+    ctx.globalAlpha = 0.98;
+    ctx.font = '54px ui-sans-serif, system-ui, -apple-system';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ev.boss.icon, 0, 0);
+
+    ctx.globalAlpha = 0.80;
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.font = '16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(ev.boss.name, 0, 48);
+
+    if (ev.phase >= 1 && ev.t < 1.25){
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.arc(0, 0, 86, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawMonster(ctx, ev){
+    ctx.save();
+    ctx.translate(ev.mx, ev.my);
+    ctx.globalAlpha = 0.98;
+    ctx.font = ev.rare ? '40px ui-sans-serif, system-ui, -apple-system' : '34px ui-sans-serif, system-ui, -apple-system';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ev.monster.icon, 0, 0);
+
+    ctx.globalAlpha = ev.rare ? 0.26 : 0.18;
+    ctx.beginPath();
+    ctx.arc(0, 0, ev.rare ? 34 : 26, 0, Math.PI*2);
+    ctx.fillStyle = ev.rare ? 'rgba(255,215,90,0.65)' : (heroClass ? heroClass.main : 'rgba(255,255,255,0.6)');
+    ctx.fill();
+
+    if (ev.phase >= 1 && ev.t < 1.18){
+      ctx.globalAlpha = 0.40;
+      ctx.beginPath();
+      ctx.arc(0, 0, ev.rare ? 48 : 40, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawItem(ctx, ev, x, y){
+    ctx.save();
+    ctx.translate(x, y);
+    const it = ev.data;
+    ctx.globalAlpha = 0.96;
+    ctx.font = (it.rare ? 34 : 28) + 'px ui-sans-serif, system-ui, -apple-system';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(it.icon, 0, 0);
+    if (it.rare){
+      ctx.globalAlpha = 0.22;
+      ctx.beginPath();
+      ctx.arc(0, 0, 34, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,215,90,0.75)';
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  function drawParticlesWorld(ctx){
+    for (const p of particles){
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      const a = clamp(p.life / 0.6, 0, 1);
+      ctx.globalAlpha = 0.85 * a;
+
+      if (p.kind === 'slash'){
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(-18, -12);
+        ctx.lineTo(18, 12);
+        ctx.stroke();
+
+      } else if (p.kind === 'spark'){
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI*2);
+        ctx.fill();
+
+      } else {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(0, 0, 6, 0, Math.PI*2);
+        ctx.fill();
+      }
+
+      ctx.restore();
+    }
+  }
+
+  function drawHero(ctx, x, y, tilt, running, glow){
+    // ドット絵っぽい勇者（矩形だけで構成）
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+
+    // shadow
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = 'rgba(0,0,0,0.70)';
+    ctx.beginPath();
+    ctx.ellipse(0, 84, 46, 13, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    const main = heroClass ? heroClass.main : '#7cc9ff';
+    const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.80)';
+
+    const s = 3.2; // ドット倍率
+    const px = (dx, dy, w, h, c, a=1) => {
+      ctx.save();
+      ctx.globalAlpha = a;
+      ctx.fillStyle = c;
+      ctx.fillRect(Math.round(dx*s), Math.round(dy*s), Math.round(w*s), Math.round(h*s));
+      ctx.restore();
+    };
+
+    ctx.translate(-12*s, -26*s);
+
+    const O = 'rgba(0,0,0,0.55)';
+
+    // head
+    px(6, 0, 12, 10, O, 0.55);
+    px(7, 1, 10, 8, 'rgba(255,255,255,0.92)');
+
+    // hair/hat
+    px(7, 1, 10, 3, main, 0.95);
+    px(6, 4, 12, 2, main, 0.85);
+
+    // eyes
+    px(9, 4, 2, 2, 'rgba(0,0,0,0.7)');
+    px(13, 4, 2, 2, 'rgba(0,0,0,0.7)');
+
+    // body
+    px(7, 10, 10, 10, main, 0.95);
+    px(7, 20, 10, 5, 'rgba(255,255,255,0.90)', 0.90);
+
+    // arms
+    const swing = running ? Math.sin(hero.step)*1.5 : 0;
+    px(4, 11 + swing*0.4, 3, 9, 'rgba(255,255,255,0.90)');
+    px(17, 11 - swing*0.4, 3, 9, 'rgba(255,255,255,0.90)');
+
+    // legs
+    const leg = running ? Math.sin(hero.step)*1.8 : 0;
+    px(8, 25, 4, 8, 'rgba(255,255,255,0.90)');
+    px(12, 25 + leg*0.2, 4, 8, 'rgba(255,255,255,0.90)');
+
+    // weapon
+    ctx.save();
+    ctx.globalAlpha = 0.92;
+    ctx.strokeStyle = blade;
+    ctx.lineWidth = 3.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(22*s, 16*s);
+    ctx.lineTo(32*s, 8*s);
+    ctx.stroke();
+    ctx.restore();
+
+    if (equipped && equipped.name === 'でんせつのけん'){
+      ctx.save();
+      ctx.globalAlpha = 0.26;
+      ctx.strokeStyle = blade;
+      ctx.lineWidth = 7.2;
+      ctx.beginPath();
+      ctx.moveTo(22*s, 16*s);
+      ctx.lineTo(32*s, 8*s);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (hero.crown){
+      px(9, -4, 6, 3, 'rgba(124,247,194,0.95)');
+      px(9, -6, 2, 2, 'rgba(124,247,194,0.95)');
+      px(13, -6, 2, 2, 'rgba(124,247,194,0.95)');
+    }
+
+    ctx.restore();
+  }
+
+  // ==============================
+  // HUD + Result
+  // ==============================
+  function drawHUD(W, H, glow){
+    const pad = 18;
+    const w = Math.min(880, W - pad*2);
+    const x = (W - w)/2;
+
+    dqWindow(x, 18, w, 118);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '900 20px ui-sans-serif, system-ui, -apple-system';
+    ctx.textAlign = 'left';
+    ctx.fillText('ぼうけん', x + 18, 48);
+
+    ctx.font = '750 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+
+    const cls = heroClass ? heroClass.name : '？？？';
+    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'ぶき：なし';
+
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + 18, 74);
+    ctx.fillText(`${wpn}`, x + 18, 96);
+
+    // HP/MP bars
+    drawBar(x + 18, 104, 220, 10, hp / Math.max(1,maxHp), 'HP');
+    drawBar(x + 18, 118, 220, 10, mp / Math.max(1,maxMp), 'MP');
+
+    // right metrics
+    ctx.textAlign = 'right';
+    ctx.fillText(`きょり ${fmt(dist)}`, x + w - 18, 56);
+    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - 18, 80);
+    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - 18, 104);
+
+    // message window
+    dqWindow(x, H - 180, w, 150);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '800 18px ui-sans-serif, system-ui, -apple-system';
+
+    const baseLine = (mode === MODE.RUN) ? '...' : 'タップして ぼうけん';
+    const line1 = msg.text || baseLine;
+
+    wrapText(line1, x + 18, H - 136, w - 36, 22, 2);
+
+    ctx.globalAlpha = 0.75;
+    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
+    const recent = logLines.slice(-3);
+    for (let i=0;i<recent.length;i++){
+      ctx.fillText(recent[i], x + 18, H - 74 + i*18);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawBar(x, y, w, h, ratio, label){
+    ratio = clamp(ratio, 0, 1);
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(x, y, w, h);
+
+    ctx.globalAlpha = 0.65;
+    ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.75)' : 'rgba(124,201,255,0.70)';
+    ctx.fillRect(x+1, y+1, Math.max(0, (w-2)*ratio), h-2);
+
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = 'rgba(255,255,255,0.88)';
+    ctx.font = '700 12px ui-sans-serif, system-ui, -apple-system';
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x + w + 10, y + h);
+
+    ctx.restore();
+  }
+
+  function drawCenterCard(W, H, glow, title, sub){
+    const cw = Math.min(780, W - 140);
+    const ch = 250;
+    const cx = (W - cw)/2;
+    const cy = (H - ch)/2 - 10;
+
+    dqWindow(cx, cy, cw, ch, 24);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.textAlign = 'left';
+    ctx.font = '950 28px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(title, cx + 22, cy + 66);
+
+    ctx.font = '750 18px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+    wrapText(sub, cx + 22, cy + 108, cw - 44, 24, 3);
+
+    // mini ranking preview
+    ctx.fillStyle = 'rgba(255,255,255,0.70)';
+    ctx.font = '700 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('ローカルランキング Top3', cx + 22, cy + ch - 70);
+
+    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
+    const top3 = ranking.slice(0,3);
+    for (let i=0;i<top3.length;i++){
+      const r = top3[i];
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + 22, cy + ch - 48 + i*18);
+    }
+  }
+
+  function drawResultCard(W, H, glow){
+    const cw = Math.min(900, W - 120);
+    const ch = 420;
+    const cx = (W - cw)/2;
+    const cy = (H - ch)/2 - 6;
+
+    dqWindow(cx, cy, cw, ch, 24);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.textAlign = 'left';
+    ctx.font = '950 28px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('リザルト', cx + 22, cy + 58);
+
+    ctx.font = '800 18px ui-sans-serif, system-ui, -apple-system';
+    const cls = heroClass ? heroClass.name : '？？？';
+    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
+
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + 22, cy + 96);
+    ctx.fillText(`しょうごう：${title || '—'}`, cx + 22, cy + 124);
+    ctx.fillText(`きょり：${fmt(dist)}`, cx + 22, cy + 152);
+    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + 22, cy + 180);
+    ctx.fillText(`ぶき：${wpn}`, cx + 22, cy + 208);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    const list = inventory.slice(0, 10).map(i => `${i.icon}${i.name}`).join(' / ');
+    const more = inventory.length > 10 ? ` (+${inventory.length-10})` : '';
+    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + 22, cy + 238, cw - 44, 22, 2);
+
+    const lm = landmarksSeen.slice(0, 6).map(l => `${l.icon}${l.name}`).join(' / ');
+    const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
+    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + 22, cy + 282, cw - 44, 22, 2);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.fillText(`てんとう：${lastCause || '—'}`, cx + 22, cy + 336);
+
+    // ranking Top5
+    ctx.fillStyle = 'rgba(255,255,255,0.70)';
+    ctx.font = '800 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('ローカルランキング Top5', cx + 22, cy + 368);
+
+    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
+    const top5 = ranking.slice(0,5);
+    for (let i=0;i<top5.length;i++){
+      const r = top5[i];
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}  ${r.title ? '「'+r.title+'」' : ''}`, cx + 22, cy + 390 + i*18);
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    ctx.font = '650 16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText('下のボタンで 共有 / コピーできます', cx + 22, cy + ch - 22);
+  }
+
+  // ==============================
+  // DQ window primitives
+  // ==============================
+  function dqWindow(x, y, w, h, r=18){
+    ctx.save();
+    const grad = ctx.createLinearGradient(x, y, x, y+h);
+    grad.addColorStop(0, 'rgba(10,27,99,0.92)');
+    grad.addColorStop(1, 'rgba(6,19,67,0.92)');
+
+    roundRect(ctx, x, y, w, h, r);
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
+    ctx.stroke();
+
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+    roundRect(ctx, x+4, y+4, w-8, h-8, Math.max(10, r-6));
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    const rr = Math.min(r, w/2, h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+rr, y);
+    ctx.arcTo(x+w, y, x+w, y+h, rr);
+    ctx.arcTo(x+w, y+h, x, y+h, rr);
+    ctx.arcTo(x, y+h, x, y, rr);
+    ctx.arcTo(x, y, x+w, y, rr);
+    ctx.closePath();
+  }
+
+  function wrapText(text, x, y, maxWidth, lineHeight, maxLines){
+    const chars = String(text).split('');
+    let line = '';
+    let lines = 0;
+    for (let i=0;i<chars.length;i++){
+      const test = line + chars[i];
+      const w = ctx.measureText(test).width;
+      if (w > maxWidth && line){
+        ctx.fillText(line, x, y + lines*lineHeight);
+        lines += 1;
+        line = chars[i];
+        if (lines >= maxLines) return;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, x, y + lines*lineHeight);
+  }
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+
+  // ==============================
+  // Minimal self-tests (optional)
+  // ==============================
+  function assert(cond, msg){
+    if (!cond) throw new Error('TEST FAIL: ' + msg);
+  }
+
+  function runSelfTests(){
+    assert(typeof soundOn === 'boolean', 'soundOn is boolean');
+    assert(typeof vibeOn === 'boolean', 'vibeOn is boolean');
+    assert(typeof SFX.level === 'function', 'SFX.level exists');
+    assert(typeof startWalkBGM === 'function', 'walkBGM exists');
+    assert(groundY(0) > 0, 'groundY returns positive');
+  }
+
+  // init
+  syncToggles();
+  sync();
+  showMsg('タップして ぼうけん', 1.0);
+
+  // `#test` を付けるとテストを実行（通常プレイには影響しません）
+  if (location.hash === '#test'){
+    runSelfTests();
+    console.log('Self-tests passed');
+  }
+})();
+</script>
+</body>
+</html>
