@@ -131,8 +131,8 @@
   const LANDMARK_MIN = 820;
   const LANDMARK_MAX = 1500;
 
-  const RARE_ENEMY_RATE = 0.08;  // 遭遇の一部がレア敵
-  const RARE_CHEST_RATE = 0.10;  // 宝箱の一部がレア箱
+  const RARE_ENEMY_RATE = 0.08;
+  const RARE_CHEST_RATE = 0.10;
 
   // ボス（スコア無関係）
   const BOSS_MIN_DIST = 170;   // m
@@ -206,6 +206,8 @@
     'じゅうりょくがつよい',
     'せかいのいし',
     'あしがわらった',
+    'くしゃみで まえがみが めに はいった',
+    'みみかきをしながら はしった',
   ];
 
   const BOSSES = [
@@ -283,7 +285,6 @@
     stopWalkBGM();
     if (!soundOn) return;
     ensureAudio();
-    // 6/8っぽいノリの短い動機をループ（あくまで効果音寄り）
     const motif = [
       {f:392, d:0.05, v:0.06},
       {f:523, d:0.05, v:0.06},
@@ -340,8 +341,6 @@
     fall:  () => tone([{f:196,d:0.08,v:0.12},{f:110,d:0.14,v:0.10,g:0.04}]),
     best:  () => tone([{f:523,d:0.08,v:0.11},{f:659,d:0.08,v:0.11},{f:784,d:0.10,v:0.12,g:0.05}]),
     spell: () => tone([{f:988,d:0.05,v:0.10},{f:1318,d:0.06,v:0.10},{f:1760,d:0.08,v:0.10,g:0.04}], 'sine'),
-
-    // レベルアップ：著作物の旋律コピーは避けつつ「ファンファーレ感」を狙ったオリジナル
     level: () => tone(
       [
         {f:523,d:0.09,v:0.11},{f:659,d:0.09,v:0.11},{f:784,d:0.10,v:0.12,g:0.03},
@@ -350,13 +349,8 @@
       ],
       'triangle'
     ),
-
     rare:  () => tone([{f:988,d:0.06,v:0.10},{f:1318,d:0.06,v:0.10},{f:1760,d:0.10,v:0.11,g:0.04}], 'sawtooth'),
-
-    // 宿屋・回復
     inn: () => tone([{f:392,d:0.08,v:0.10},{f:494,d:0.10,v:0.10},{f:659,d:0.14,v:0.11,g:0.04}], 'triangle'),
-
-    // ボス出現
     boss: () => tone([{f:220,d:0.10,v:0.11},{f:196,d:0.10,v:0.11},{f:174,d:0.14,v:0.11,g:0.05}], 'sawtooth'),
   };
 
@@ -396,7 +390,7 @@
   let heroClass = null;
   let equipped = null;
 
-  // RPG-ish status (演出用)
+  // RPG-ish status
   let level = 1;
   let xp = 0;
   let nextXp = 20;
@@ -422,7 +416,7 @@
   let bossDist = 220;
   let bossDone = false;
 
-  // active: battle/item/landmark/boss/fall
+  // active
   let active = null;
 
   // particles
@@ -484,7 +478,6 @@
       xp -= nextXp;
       level += 1;
       nextXp = Math.floor(nextXp * 1.25 + 6);
-      // 演出上のステ上昇
       maxHp += 2;
       maxMp += 1;
       hp = Math.min(maxHp, hp + 3);
@@ -500,12 +493,18 @@
   // ==============================
   // Controls
   // ==============================
-  cv.addEventListener('pointerdown', () => triggerStart(), {passive:true});
+  // 誤爆防止：結果画面はキャンバスタップで開始しない
+  cv.addEventListener('pointerdown', () => {
+    if (mode === MODE.READY) triggerStart();
+    // RUN/FALLING/RESULT は無視
+  }, {passive:true});
+
   btnStart.addEventListener('click', () => triggerStart());
 
   function triggerStart(){
     if (mode === MODE.RUN || mode === MODE.FALLING) return;
-    // 音はユーザー操作で起動できるので、ここでAudioContextを起こしておく
+    // RESULT はボタン操作のみ許可
+    if (mode === MODE.RESULT) return;
     ensureAudio();
     startRun();
   }
@@ -564,7 +563,15 @@
     const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
     const lm = landmarksSeen.slice(0,6).map(l => `${l.icon}${l.name}`).join(' / ');
     const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
-    return `勇者が勝手に転ぶ冒険\n職業：${cls} Lv${level}\n称号：${title || '—'}\n距離：${fmt(dist)}\n討伐：${kills}（レア${rareCount}）\n武器：${wpn}\n入手：${inventory.length ? (inv + more) : 'なし'}\n地点：${landmarksSeen.length ? (lm + lmMore) : 'なし'}\n転倒：${lastCause || '—'}`;
+    return `勇者が勝手に転ぶ冒険
+職業：${cls} Lv${level}
+称号：${title || '—'}
+距離：${fmt(dist)}
+討伐：${kills}（レア${rareCount}）
+武器：${wpn}
+入手：${inventory.length ? (inv + more) : 'なし'}
+地点：${landmarksSeen.length ? (lm + lmMore) : 'なし'}
+転倒：${lastCause || '—'}`;
   }
 
   // ==============================
@@ -608,7 +615,6 @@
     nextItemX = 520 + Math.floor(rng()*240);
     nextLandmarkX = 900 + Math.floor(rng()*380);
 
-    // ボス（スコア無関係）
     bossDone = false;
     bossDist = BOSS_MIN_DIST + rng()*(BOSS_MAX_DIST - BOSS_MIN_DIST);
 
@@ -736,13 +742,11 @@
   }
 
   function update(dt){
-    // message
     if (msg.dur > 0){
       msg.t += dt;
       if (msg.t >= msg.dur){ msg.text = ''; msg.dur = 0; }
     }
 
-    // particles
     for (const p of particles){
       p.life -= dt;
       p.x += p.vx * dt;
@@ -768,13 +772,11 @@
       const targetCam = hero.x - 320;
       camX += (targetCam - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
 
-      // 簡易HP/MP変動（演出）
       if (rng() < 0.01 * dt * 60){
         hp = clamp(hp - (rng()<0.5?1:0), 0, maxHp);
         mp = clamp(mp - (rng()<0.35?1:0), 0, maxMp);
       }
 
-      // ボス発生（スコア無関係・演出のみ）
       if (!active && !bossDone && dist >= bossDist){
         const b = BOSSES[Math.floor(rng()*BOSSES.length)];
         active = {
@@ -792,7 +794,6 @@
         vibrate([18, 24, 18]);
       }
 
-      // Battle schedule
       if (!active && hero.x >= nextEncounterX){
         const isRare = rng() < RARE_ENEMY_RATE;
         const m = isRare ? RARE_MONSTERS[Math.floor(rng()*RARE_MONSTERS.length)] : MONSTERS[Math.floor(rng()*MONSTERS.length)];
@@ -813,7 +814,6 @@
         nextEncounterX += ENCOUNTER_MIN + Math.floor(rng()*(ENCOUNTER_MAX-ENCOUNTER_MIN));
       }
 
-      // Item schedule
       if (!active && hero.x >= nextItemX){
         const roll = rng();
         let it;
@@ -867,7 +867,6 @@
         nextItemX += ITEM_MIN + Math.floor(rng()*(ITEM_MAX-ITEM_MIN));
       }
 
-      // Landmark schedule
       if (!active && hero.x >= nextLandmarkX){
         const lm = LANDMARKS[Math.floor(rng()*LANDMARKS.length)];
         active = { type:'landmark', t:0, data: lm, x: hero.x + 520, y: groundY(hero.x + 520) - 120 };
@@ -876,7 +875,6 @@
         showMsg(`${lm.name} に とうちゃく`, 1.0);
 
         if (lm.kind === 'inn'){
-          // 宿屋は専用SE＋大回復
           SFX.inn();
           vibrate([8, 12, 8]);
           hp = maxHp;
@@ -894,18 +892,15 @@
         nextLandmarkX += LANDMARK_MIN + Math.floor(rng()*(LANDMARK_MAX-LANDMARK_MIN));
       }
 
-      // process active
       if (active){
         active.t += dt;
 
-        // 近づき
         if (active.type === 'battle' || active.type === 'boss'){
           const targetX = hero.x + 230;
           const approachSpeed = 520;
           if (active.mx > targetX) active.mx -= approachSpeed * dt;
         }
 
-        // battle
         if (active.type === 'battle'){
           if (active.t >= 0.65 && active.phase === 0){
             active.phase = 1;
@@ -934,9 +929,7 @@
             active = null;
           }
 
-        // boss
         } else if (active.type === 'boss'){
-          // 演出を少し長めにして「ボス戦」感
           if (active.t >= 0.80 && active.phase === 0){
             active.phase = 1;
             doBossAttackEffect(active);
@@ -948,7 +941,6 @@
             SFX.hit();
             vibrate([14, 22, 14]);
             pushLog(`→ ${active.boss.name} を しりぞけた`);
-            // 報酬（スコア無関係だが、育つ）
             addXP(22 + Math.floor(rng()*10), 'ボス');
             hp = clamp(hp - 2, 0, maxHp);
             mp = clamp(mp - 1, 0, maxMp);
@@ -968,7 +960,6 @@
         }
       }
 
-      // Fall check
       const chaos = (rng() - 0.5) * 0.95;
       const slopeRisk = Math.abs(slope) / 30;
       const fatigue = dist * 0.00018;
@@ -1012,8 +1003,6 @@
 
   function doAttackEffect(ev){
     const cls = heroClass.effect;
-    const hx = hero.x + 70;
-    const hy = hero.y - 12;
     const mx = ev.mx;
     const my = ev.my;
 
@@ -1021,7 +1010,7 @@
       for (let i=0;i<10;i++){
         const a = -0.2 + rng()*0.4;
         const sp = 520 + rng()*260;
-        particles.push({ x:hx, y:hy, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.25, kind:'spark', color:heroClass.main });
+        particles.push({ x:hero.x+70, y:hero.y-12, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.25, kind:'spark', color:heroClass.main });
       }
       SFX.spell();
       vibrate(10);
@@ -1059,7 +1048,6 @@
   }
 
   function doBossAttackEffect(ev){
-    // ボス用：ちょい派手
     const mx = ev.mx;
     const my = ev.my;
     spawnBurst(mx, my - 12, 'rgba(255,90,90,0.95)');
@@ -1098,23 +1086,12 @@
 
     ctx.clearRect(0,0,W,H);
 
-    // stars
-    ctx.globalAlpha = 0.42 + glow*0.20;
-    const starN = 30 + Math.floor(glow*34);
-    for (let i=0;i<starN;i++){
-      const x = (i*137.5 + (camX*0.04)) % W;
-      const y = (i*i*17.2) % (H*0.55);
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
-      ctx.fillRect(x, y, 2, 2);
-    }
-    ctx.globalAlpha = 1;
-
-    // aurora
+    // 背景（暗め）
     ctx.save();
-    const ag = ctx.createLinearGradient(0, 0, 0, H);
-    ag.addColorStop(0, `rgba(124,201,255,${0.08 + glow*0.12})`);
-    ag.addColorStop(1, `rgba(124,247,194,${0.00 + glow*0.08})`);
-    ctx.fillStyle = ag;
+    const bg = ctx.createLinearGradient(0,0,0,H);
+    bg.addColorStop(0, '#06112a');
+    bg.addColorStop(1, '#02040a');
+    ctx.fillStyle = bg;
     ctx.fillRect(0,0,W,H);
     ctx.restore();
 
@@ -1133,43 +1110,34 @@
     ctx.lineTo(endX, H);
     ctx.closePath();
 
-    const g = ctx.createLinearGradient(0, 420, 0, H);
-    g.addColorStop(0, `rgba(124,201,255,${0.10 + glow*0.10})`);
-    g.addColorStop(1, 'rgba(255,255,255,0.00)');
-    ctx.fillStyle = g;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.fill();
 
-    // line
     ctx.beginPath();
     for (let x = startX; x <= endX; x += 10){
       ctx.lineTo(x, groundY(x));
     }
-    ctx.strokeStyle = `rgba(255,255,255,${0.10 + glow*0.06})`;
+    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // landmark in world
     if (active && active.type === 'landmark' && mode === MODE.RUN){
       drawLandmark(ctx, active);
     }
 
-    // monster/boss in world
     if (active && mode === MODE.RUN){
       if (active.type === 'battle') drawMonster(ctx, active);
       if (active.type === 'boss') drawBoss(ctx, active);
     }
 
-    // item in world
     if (active && active.type === 'item' && mode === MODE.RUN){
       drawItem(ctx, active, hero.x + 520, groundY(hero.x + 520) - 120);
     }
 
-    // hero
     const running = (mode === MODE.RUN);
     const ang = running ? hero.tilt : (hero.rag + 1.1);
     drawHero(ctx, hero.x, hero.y, ang, running, glow);
 
-    // particles
     drawParticlesWorld(ctx);
 
     ctx.restore();
@@ -1183,6 +1151,31 @@
     }
   }
 
+  // ======== DQ Window (白枠×黒背景×白文字) ========
+  function dqWindow(x, y, w, h, r=6){
+    ctx.save();
+    // outer white
+    roundRect(ctx, x, y, w, h, r);
+    ctx.fillStyle = '#ffffff';
+    ctx.fill();
+
+    // inner black
+    roundRect(ctx, x+4, y+4, w-8, h-8, Math.max(2, r-2));
+    ctx.fillStyle = '#000000';
+    ctx.fill();
+
+    // subtle inner border
+    roundRect(ctx, x+6, y+6, w-12, h-12, Math.max(2, r-2));
+    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.restore();
+  }
+
+  // ==============================
+  // Draw helpers (world)
+  // ==============================
   function drawLandmark(ctx, ev){
     ctx.save();
     ctx.translate(ev.x, ev.y);
@@ -1191,10 +1184,10 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(ev.data.icon, 0, 0);
-    ctx.globalAlpha = 0.75;
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    ctx.font = '14px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText(ev.data.name, 0, 30);
+    ctx.globalAlpha = 0.85;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(ev.data.name, 0, 32);
     ctx.restore();
   }
 
@@ -1202,28 +1195,28 @@
     ctx.save();
     ctx.translate(ev.mx, ev.my);
 
-    ctx.globalAlpha = 0.20;
+    ctx.globalAlpha = 0.22;
     ctx.beginPath();
-    ctx.arc(0, 0, 64, 0, Math.PI*2);
-    ctx.fillStyle = 'rgba(255,90,90,0.75)';
+    ctx.arc(0, 0, 72, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(255,90,90,0.55)';
     ctx.fill();
 
-    ctx.globalAlpha = 0.98;
+    ctx.globalAlpha = 1;
     ctx.font = '54px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
     ctx.fillText(ev.boss.icon, 0, 0);
 
-    ctx.globalAlpha = 0.80;
-    ctx.fillStyle = 'rgba(255,255,255,0.90)';
-    ctx.font = '16px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText(ev.boss.name, 0, 48);
+    ctx.globalAlpha = 0.92;
+    ctx.font = '18px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(ev.boss.name, 0, 52);
 
     if (ev.phase >= 1 && ev.t < 1.25){
       ctx.globalAlpha = 0.28;
       ctx.beginPath();
-      ctx.arc(0, 0, 86, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.arc(0, 0, 92, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
       ctx.fill();
     }
 
@@ -1233,25 +1226,18 @@
   function drawMonster(ctx, ev){
     ctx.save();
     ctx.translate(ev.mx, ev.my);
-    ctx.globalAlpha = 0.98;
-    ctx.font = ev.rare ? '40px ui-sans-serif, system-ui, -apple-system' : '34px ui-sans-serif, system-ui, -apple-system';
+    ctx.globalAlpha = 1;
+    ctx.font = ev.rare ? '42px ui-sans-serif, system-ui, -apple-system' : '36px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
     ctx.fillText(ev.monster.icon, 0, 0);
 
-    ctx.globalAlpha = ev.rare ? 0.26 : 0.18;
+    ctx.globalAlpha = ev.rare ? 0.28 : 0.18;
     ctx.beginPath();
-    ctx.arc(0, 0, ev.rare ? 34 : 26, 0, Math.PI*2);
+    ctx.arc(0, 0, ev.rare ? 36 : 28, 0, Math.PI*2);
     ctx.fillStyle = ev.rare ? 'rgba(255,215,90,0.65)' : (heroClass ? heroClass.main : 'rgba(255,255,255,0.6)');
     ctx.fill();
-
-    if (ev.phase >= 1 && ev.t < 1.18){
-      ctx.globalAlpha = 0.40;
-      ctx.beginPath();
-      ctx.arc(0, 0, ev.rare ? 48 : 40, 0, Math.PI*2);
-      ctx.fillStyle = 'rgba(255,255,255,0.35)';
-      ctx.fill();
-    }
 
     ctx.restore();
   }
@@ -1260,10 +1246,11 @@
     ctx.save();
     ctx.translate(x, y);
     const it = ev.data;
-    ctx.globalAlpha = 0.96;
+    ctx.globalAlpha = 1;
     ctx.font = (it.rare ? 34 : 28) + 'px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
     ctx.fillText(it.icon, 0, 0);
     if (it.rare){
       ctx.globalAlpha = 0.22;
@@ -1307,25 +1294,27 @@
     }
   }
 
+  // ==============================
+  // Hero (強化：マント + 光る目 + 大剣 + ドット感)
+  // ==============================
   function drawHero(ctx, x, y, tilt, running, glow){
-    // ドット絵っぽい勇者（矩形だけで構成）
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(tilt);
 
     // shadow
     ctx.save();
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = 'rgba(0,0,0,0.70)';
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = 'rgba(0,0,0,0.75)';
     ctx.beginPath();
-    ctx.ellipse(0, 84, 46, 13, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 84, 48, 14, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
 
     const main = heroClass ? heroClass.main : '#7cc9ff';
-    const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.80)';
+    const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.85)';
 
-    const s = 3.2; // ドット倍率
+    const s = 3.5; // 少し大きく
     const px = (dx, dy, w, h, c, a=1) => {
       ctx.save();
       ctx.globalAlpha = a;
@@ -1334,253 +1323,258 @@
       ctx.restore();
     };
 
-    ctx.translate(-12*s, -26*s);
+    ctx.translate(-14*s, -28*s);
 
-    const O = 'rgba(0,0,0,0.55)';
+    const O = 'rgba(0,0,0,0.65)';
+    const swing = running ? Math.sin(hero.step)*1.8 : 0;
+    const leg = running ? Math.sin(hero.step)*2.0 : 0;
 
-    // head
-    px(6, 0, 12, 10, O, 0.55);
-    px(7, 1, 10, 8, 'rgba(255,255,255,0.92)');
+    // mantle (厨二病：紫〜黒)
+    const mantle = 'rgba(75,0,120,0.92)';
+    px(5, 10 + swing*0.2, 14, 18, O, 0.30);
+    px(4, 11 + swing*0.2, 16, 20, mantle, 0.92);
+    // mantle highlight
+    px(5, 12 + swing*0.2, 2, 18, 'rgba(200,140,255,0.22)', 1);
 
-    // hair/hat
-    px(7, 1, 10, 3, main, 0.95);
-    px(6, 4, 12, 2, main, 0.85);
+    // head outline
+    px(6, 0, 14, 12, O, 0.50);
+    // face
+    px(7, 1, 12, 10, 'rgba(255,255,255,0.92)');
 
-    // eyes
-    px(9, 4, 2, 2, 'rgba(0,0,0,0.7)');
-    px(13, 4, 2, 2, 'rgba(0,0,0,0.7)');
+    // hair/hood
+    px(7, 1, 12, 4, main, 0.95);
+    px(6, 4, 14, 3, main, 0.85);
 
-    // body
-    px(7, 10, 10, 10, main, 0.95);
-    px(7, 20, 10, 5, 'rgba(255,255,255,0.90)', 0.90);
+    // eyes (光る)
+    px(10, 5, 2, 2, 'rgba(0,0,0,0.8)');
+    px(15, 5, 2, 2, 'rgba(0,0,0,0.8)');
+    px(11, 6, 1, 1, 'rgba(255,80,80,0.95)');
+    px(16, 6, 1, 1, 'rgba(255,80,80,0.95)');
+
+    // body (armor-ish)
+    px(7, 12, 12, 12, O, 0.20);
+    px(8, 12, 10, 12, main, 0.95);
+    // belt
+    px(8, 20, 10, 2, 'rgba(255,255,255,0.85)', 0.9);
+    px(11, 20, 4, 2, 'rgba(255,215,90,0.85)', 0.9);
 
     // arms
-    const swing = running ? Math.sin(hero.step)*1.5 : 0;
-    px(4, 11 + swing*0.4, 3, 9, 'rgba(255,255,255,0.90)');
-    px(17, 11 - swing*0.4, 3, 9, 'rgba(255,255,255,0.90)');
+    px(4, 13 + swing*0.5, 3, 10, 'rgba(255,255,255,0.90)');
+    px(19, 13 - swing*0.5, 3, 10, 'rgba(255,255,255,0.90)');
+    // gloves
+    px(4, 22 + swing*0.5, 3, 2, 'rgba(0,0,0,0.35)');
+    px(19, 22 - swing*0.5, 3, 2, 'rgba(0,0,0,0.35)');
 
     // legs
-    const leg = running ? Math.sin(hero.step)*1.8 : 0;
-    px(8, 25, 4, 8, 'rgba(255,255,255,0.90)');
-    px(12, 25 + leg*0.2, 4, 8, 'rgba(255,255,255,0.90)');
+    px(9, 24, 5, 10, 'rgba(255,255,255,0.90)');
+    px(14, 24 + leg*0.2, 5, 10, 'rgba(255,255,255,0.90)');
+    // boots
+    px(9, 32, 5, 3, 'rgba(0,0,0,0.35)');
+    px(14, 32 + leg*0.2, 5, 3, 'rgba(0,0,0,0.35)');
 
-    // weapon
+    // big sword
     ctx.save();
-    ctx.globalAlpha = 0.92;
+    ctx.globalAlpha = 0.95;
     ctx.strokeStyle = blade;
-    ctx.lineWidth = 3.6;
+    ctx.lineWidth = 4.2;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(22*s, 16*s);
-    ctx.lineTo(32*s, 8*s);
+    ctx.moveTo(24*s, (18 + swing*0.2)*s);
+    ctx.lineTo(38*s, (6 - swing*0.2)*s);
+    ctx.stroke();
+    // edge glow
+    ctx.globalAlpha = equipped && equipped.name === 'でんせつのけん' ? 0.28 : 0.12;
+    ctx.lineWidth = 9.0;
+    ctx.beginPath();
+    ctx.moveTo(24*s, (18 + swing*0.2)*s);
+    ctx.lineTo(38*s, (6 - swing*0.2)*s);
     ctx.stroke();
     ctx.restore();
 
-    if (equipped && equipped.name === 'でんせつのけん'){
-      ctx.save();
-      ctx.globalAlpha = 0.26;
-      ctx.strokeStyle = blade;
-      ctx.lineWidth = 7.2;
-      ctx.beginPath();
-      ctx.moveTo(22*s, 16*s);
-      ctx.lineTo(32*s, 8*s);
-      ctx.stroke();
-      ctx.restore();
-    }
-
     if (hero.crown){
-      px(9, -4, 6, 3, 'rgba(124,247,194,0.95)');
-      px(9, -6, 2, 2, 'rgba(124,247,194,0.95)');
-      px(13, -6, 2, 2, 'rgba(124,247,194,0.95)');
+      px(10, -5, 7, 3, 'rgba(255,215,90,0.95)');
+      px(10, -7, 2, 2, 'rgba(255,215,90,0.95)');
+      px(15, -7, 2, 2, 'rgba(255,215,90,0.95)');
     }
 
     ctx.restore();
   }
 
   // ==============================
-  // HUD + Result
+  // HUD + Result (スマホ視認性を最優先)
   // ==============================
+  function uiScale(){
+    // iPhone幅を想定：最小でも読めるように
+    const W = cv.width;
+    return clamp(W / 900, 0.95, 1.35);
+  }
+
   function drawHUD(W, H, glow){
-    const pad = 18;
-    const w = Math.min(880, W - pad*2);
+    const s = uiScale();
+    const pad = Math.round(18 * s);
+    const w = Math.min(Math.round(900*s), W - pad*2);
     const x = (W - w)/2;
 
-    dqWindow(x, 18, w, 118);
+    // top window
+    dqWindow(x, 14, w, Math.round(132*s));
 
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.font = '900 20px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
-    ctx.fillText('ぼうけん', x + 18, 48);
 
-    ctx.font = '750 16px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillStyle = 'rgba(255,255,255,0.90)';
+    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ぼうけん', x + Math.round(18*s), 14 + Math.round(34*s));
 
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
     const cls = heroClass ? heroClass.name : '？？？';
     const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'ぶき：なし';
-
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + 18, 74);
-    ctx.fillText(`${wpn}`, x + 18, 96);
-
-    // HP/MP bars
-    drawBar(x + 18, 104, 220, 10, hp / Math.max(1,maxHp), 'HP');
-    drawBar(x + 18, 118, 220, 10, mp / Math.max(1,maxMp), 'MP');
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + Math.round(18*s), 14 + Math.round(66*s));
+    ctx.fillText(`${wpn}`, x + Math.round(18*s), 14 + Math.round(92*s));
 
     // right metrics
     ctx.textAlign = 'right';
-    ctx.fillText(`きょり ${fmt(dist)}`, x + w - 18, 56);
-    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - 18, 80);
-    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - 18, 104);
+    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`きょり ${fmt(dist)}`, x + w - Math.round(18*s), 14 + Math.round(40*s));
+
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - Math.round(18*s), 14 + Math.round(72*s));
+    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - Math.round(18*s), 14 + Math.round(100*s));
+
+    // HP/MP
+    const barX = x + Math.round(18*s);
+    const barY = 14 + Math.round(104*s);
+    drawBar(barX, barY, Math.round(220*s), Math.round(12*s), hp / Math.max(1,maxHp), 'HP', s);
+    drawBar(barX, barY + Math.round(18*s), Math.round(220*s), Math.round(12*s), mp / Math.max(1,maxMp), 'MP', s);
 
     // message window
-    dqWindow(x, H - 180, w, 150);
+    const msgH = Math.round(186*s);
+    dqWindow(x, H - msgH - 18, w, msgH);
 
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
-    ctx.font = '800 18px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillStyle = '#ffffff';
 
+    // line1: 今起きてること（大）
     const baseLine = (mode === MODE.RUN) ? '...' : 'タップして ぼうけん';
     const line1 = msg.text || baseLine;
 
-    wrapText(line1, x + 18, H - 136, w - 36, 22, 2);
+    ctx.font = `900 ${Math.round(26*s)}px ui-sans-serif, system-ui, -apple-system`;
+    wrapText(line1, x + Math.round(18*s), H - msgH, w - Math.round(36*s), Math.round(30*s), 2);
 
-    ctx.globalAlpha = 0.75;
-    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
+    // logs (小)
+    ctx.globalAlpha = 1;
+    ctx.font = `700 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
     const recent = logLines.slice(-3);
     for (let i=0;i<recent.length;i++){
-      ctx.fillText(recent[i], x + 18, H - 74 + i*18);
+      ctx.fillText(recent[i], x + Math.round(18*s), H - Math.round(48*s) + i*Math.round(20*s));
     }
-    ctx.globalAlpha = 1;
   }
 
-  function drawBar(x, y, w, h, ratio, label){
+  function drawBar(x, y, w, h, ratio, label, s){
     ratio = clamp(ratio, 0, 1);
     ctx.save();
-    ctx.globalAlpha = 0.95;
-    ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-    ctx.lineWidth = 1;
-    ctx.strokeRect(x, y, w, h);
+    ctx.globalAlpha = 1;
 
-    ctx.globalAlpha = 0.65;
-    ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.75)' : 'rgba(124,201,255,0.70)';
-    ctx.fillRect(x+1, y+1, Math.max(0, (w-2)*ratio), h-2);
+    // white border
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, w, h);
+    // black inside
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x+2, y+2, w-4, h-4);
 
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = 'rgba(255,255,255,0.88)';
-    ctx.font = '700 12px ui-sans-serif, system-ui, -apple-system';
+    // fill
+    ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.85)' : 'rgba(124,201,255,0.85)';
+    ctx.fillRect(x+3, y+3, Math.max(0, (w-6)*ratio), h-6);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `800 ${Math.round(14*s)}px ui-sans-serif, system-ui, -apple-system`;
     ctx.textAlign = 'left';
-    ctx.fillText(label, x + w + 10, y + h);
+    ctx.fillText(label, x + w + Math.round(10*s), y + h - Math.round(1*s));
 
     ctx.restore();
   }
 
   function drawCenterCard(W, H, glow, title, sub){
-    const cw = Math.min(780, W - 140);
-    const ch = 250;
+    const s = uiScale();
+    const cw = Math.min(Math.round(860*s), W - Math.round(100*s));
+    const ch = Math.round(280*s);
     const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - 10;
+    const cy = (H - ch)/2 - Math.round(10*s);
 
-    dqWindow(cx, cy, cw, ch, 24);
+    dqWindow(cx, cy, cw, ch);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
-    ctx.font = '950 28px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText(title, cx + 22, cy + 66);
+    ctx.font = `950 ${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(title, cx + Math.round(22*s), cy + Math.round(66*s));
 
-    ctx.font = '750 18px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
-    wrapText(sub, cx + 22, cy + 108, cw - 44, 24, 3);
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    wrapText(sub, cx + Math.round(22*s), cy + Math.round(108*s), cw - Math.round(44*s), Math.round(26*s), 3);
 
-    // mini ranking preview
-    ctx.fillStyle = 'rgba(255,255,255,0.70)';
-    ctx.font = '700 16px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText('ローカルランキング Top3', cx + 22, cy + ch - 70);
+    ctx.globalAlpha = 1;
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ローカルランキング Top3', cx + Math.round(22*s), cy + ch - Math.round(78*s));
 
-    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
+    ctx.font = `700 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
     const top3 = ranking.slice(0,3);
     for (let i=0;i<top3.length;i++){
       const r = top3[i];
-      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + 22, cy + ch - 48 + i*18);
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + Math.round(22*s), cy + ch - Math.round(52*s) + i*Math.round(20*s));
     }
   }
 
   function drawResultCard(W, H, glow){
-    const cw = Math.min(900, W - 120);
-    const ch = 420;
+    const s = uiScale();
+    const cw = Math.min(Math.round(900*s), W - Math.round(90*s));
+    const ch = Math.round(500*s);
     const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - 6;
+    const cy = (H - ch)/2 - Math.round(6*s);
 
-    dqWindow(cx, cy, cw, ch, 24);
+    dqWindow(cx, cy, cw, ch);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
-    ctx.font = '950 28px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText('リザルト', cx + 22, cy + 58);
 
-    ctx.font = '800 18px ui-sans-serif, system-ui, -apple-system';
+    ctx.font = `950 ${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('リザルト', cx + Math.round(22*s), cy + Math.round(58*s));
+
     const cls = heroClass ? heroClass.name : '？？？';
     const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
 
-    ctx.fillStyle = 'rgba(255,255,255,0.90)';
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + 22, cy + 96);
-    ctx.fillText(`しょうごう：${title || '—'}`, cx + 22, cy + 124);
-    ctx.fillText(`きょり：${fmt(dist)}`, cx + 22, cy + 152);
-    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + 22, cy + 180);
-    ctx.fillText(`ぶき：${wpn}`, cx + 22, cy + 208);
+    // 距離を最強表示
+    ctx.textAlign = 'right';
+    ctx.font = `950 ${Math.round(34*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`${fmt(dist)}`, cx + cw - Math.round(22*s), cy + Math.round(58*s));
 
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
+    ctx.textAlign = 'left';
+    ctx.font = `850 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + Math.round(22*s), cy + Math.round(100*s));
+    ctx.fillText(`しょうごう：${title || '—'}`, cx + Math.round(22*s), cy + Math.round(128*s));
+    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + Math.round(22*s), cy + Math.round(156*s));
+    ctx.fillText(`ぶき：${wpn}`, cx + Math.round(22*s), cy + Math.round(184*s));
+
+    // 死因をデカく
+    ctx.font = `950 ${Math.round(26*s)}px ui-sans-serif, system-ui, -apple-system`;
+    wrapText(`しにかた：${lastCause || '—'}`, cx + Math.round(22*s), cy + Math.round(238*s), cw - Math.round(44*s), Math.round(30*s), 2);
+
+    // inventory + landmarks
+    ctx.font = `800 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
     const list = inventory.slice(0, 10).map(i => `${i.icon}${i.name}`).join(' / ');
     const more = inventory.length > 10 ? ` (+${inventory.length-10})` : '';
-    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + 22, cy + 238, cw - 44, 22, 2);
+    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + Math.round(22*s), cy + Math.round(300*s), cw - Math.round(44*s), Math.round(22*s), 2);
 
     const lm = landmarksSeen.slice(0, 6).map(l => `${l.icon}${l.name}`).join(' / ');
     const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
-    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + 22, cy + 282, cw - 44, 22, 2);
+    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + Math.round(22*s), cy + Math.round(354*s), cw - Math.round(44*s), Math.round(22*s), 2);
 
-    ctx.fillStyle = 'rgba(255,255,255,0.82)';
-    ctx.fillText(`てんとう：${lastCause || '—'}`, cx + 22, cy + 336);
-
-    // ranking Top5
-    ctx.fillStyle = 'rgba(255,255,255,0.70)';
-    ctx.font = '800 16px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText('ローカルランキング Top5', cx + 22, cy + 368);
-
-    ctx.font = '650 14px ui-sans-serif, system-ui, -apple-system';
-    const top5 = ranking.slice(0,5);
-    for (let i=0;i<top5.length;i++){
-      const r = top5[i];
-      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}  ${r.title ? '「'+r.title+'」' : ''}`, cx + 22, cy + 390 + i*18);
-    }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.68)';
-    ctx.font = '650 16px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText('下のボタンで 共有 / コピーできます', cx + 22, cy + ch - 22);
+    // hint
+    ctx.globalAlpha = 0.95;
+    ctx.font = `900 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('「もう一回」ボタンで つづける', cx + Math.round(22*s), cy + ch - Math.round(22*s));
+    ctx.globalAlpha = 1;
   }
 
   // ==============================
-  // DQ window primitives
+  // Primitives
   // ==============================
-  function dqWindow(x, y, w, h, r=18){
-    ctx.save();
-    const grad = ctx.createLinearGradient(x, y, x, y+h);
-    grad.addColorStop(0, 'rgba(10,27,99,0.92)');
-    grad.addColorStop(1, 'rgba(6,19,67,0.92)');
-
-    roundRect(ctx, x, y, w, h, r);
-    ctx.fillStyle = grad;
-    ctx.fill();
-
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-    ctx.stroke();
-
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = 'rgba(0,0,0,0.35)';
-    roundRect(ctx, x+4, y+4, w-8, h-8, Math.max(10, r-6));
-    ctx.stroke();
-
-    ctx.restore();
-  }
-
   function roundRect(ctx, x, y, w, h, r){
     const rr = Math.min(r, w/2, h/2);
     ctx.beginPath();
@@ -1614,7 +1608,7 @@
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
   // ==============================
-  // Minimal self-tests (optional)
+  // Minimal self-tests
   // ==============================
   function assert(cond, msg){
     if (!cond) throw new Error('TEST FAIL: ' + msg);
@@ -1626,6 +1620,9 @@
     assert(typeof SFX.level === 'function', 'SFX.level exists');
     assert(typeof startWalkBGM === 'function', 'walkBGM exists');
     assert(groundY(0) > 0, 'groundY returns positive');
+    // result tap guard
+    mode = MODE.RESULT;
+    // no exception expected
   }
 
   // init
@@ -1633,7 +1630,6 @@
   sync();
   showMsg('タップして ぼうけん', 1.0);
 
-  // `#test` を付けるとテストを実行（通常プレイには影響しません）
   if (location.hash === '#test'){
     runSelfTests();
     console.log('Self-tests passed');
