@@ -13,98 +13,117 @@
       --shadow: 0 18px 40px rgba(0,0,0,.35);
     }
     *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
-    html,body{height:100%; margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif; background: radial-gradient(1000px 700px at 20% 0%, #14245a 0%, var(--bg0) 60%, #050815 100%); color:var(--text);}
+    html,body{
+      height:100%; margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
+      background: radial-gradient(1000px 700px at 20% 0%, #14245a 0%, var(--bg0) 60%, #050815 100%);
+      color:var(--text);
+    }
 
-    .wrap{min-height:100%; display:flex; flex-direction:column; padding: max(12px, env(safe-area-inset-top)) 12px max(12px, env(safe-area-inset-bottom)); gap:12px; align-items:center;}
-    .topbar{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch;}
+    .wrap{
+      min-height:100%;
+      display:flex;
+      flex-direction:column;
+      padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
+      gap:10px;
+      align-items:center;
+      justify-content:center;
+    }
 
-    .card{background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.07)); border: 1px solid rgba(255,255,255,.10); border-radius: var(--r); box-shadow: var(--shadow); backdrop-filter: blur(10px);}
-    .brand{flex:1; padding: 12px 14px; display:flex; flex-direction:column; justify-content:center; gap:6px;}
-    .brand .title{font-weight:800; letter-spacing:.3px; font-size:14px; color: rgba(255,255,255,.92)}
-    .brand .sub{font-size:12px; color: var(--muted)}
+    .stage{width:min(980px, 100%); display:flex; flex-direction:column; gap:10px;}
 
-    .stats{padding: 12px 14px; min-width: 380px; display:flex; gap:12px; align-items:center; justify-content:space-between;}
-    .stat{display:flex; flex-direction:column; gap:3px;}
-    .stat .k{font-size:11px; color: var(--muted)}
-    .stat .v{font-size:14px; font-variant-numeric: tabular-nums; letter-spacing:.2px;}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(255,255,255,.07));
+      border: 1px solid rgba(255,255,255,.10);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+    }
 
-    .stage{width:min(920px, 100%); display:grid; grid-template-columns: 1fr; gap:12px;}
-    .canvasWrap{position:relative; padding:10px;}
+    .canvasWrap{position:relative; padding:8px;}
 
-    /* プレイ画面を拡大 */
-    canvas{width:100%; height:min(82vh, 820px); display:block; border-radius: calc(var(--r) - 6px); background: linear-gradient(180deg, #0b1740 0%, #070f2a 60%, #050815 100%); border:1px solid rgba(255,255,255,.08);}
+    /* 画面を最大化寄り（ボタン排除したので大きく） */
+    canvas{
+      width:100%;
+      height: min(90vh, 860px);
+      display:block;
+      border-radius: calc(var(--r) - 6px);
+      background: linear-gradient(180deg, #0b1740 0%, #070f2a 60%, #050815 100%);
+      border:1px solid rgba(255,255,255,.08);
+      touch-action: manipulation;
+    }
 
-    .controls{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch; justify-content:space-between;}
-    .btn{flex: 1; border: 1px solid rgba(255,255,255,.12); background: linear-gradient(180deg, rgba(255,255,255,.13), rgba(255,255,255,.07)); color: rgba(255,255,255,.92); border-radius: 16px; padding: 14px 14px; font-size: 14px; font-weight: 800; letter-spacing: .3px; box-shadow: 0 18px 40px rgba(0,0,0,.30); cursor:pointer; user-select:none; touch-action: manipulation; display:flex; align-items:center; justify-content:center; gap:10px;}
-    .btn:active{transform: translateY(1px);}
-    .btn.primary{border-color: rgba(124,247,194,.35);}
-    .btn.primary .spark{width:10px; height:10px; border-radius:999px; background: rgba(124,247,194,0.95); box-shadow: 0 0 18px rgba(124,247,194,.65)}
-
-    .toggle{flex: 0.9; display:flex; gap:10px; padding: 12px 14px; align-items:center; justify-content:space-between;}
-    .toggle .label{display:flex; flex-direction:column; gap:3px;}
-    .toggle .label .t{font-size:13px; font-weight:800;}
-    .toggle .label .d{font-size:11px; color: var(--muted)}
-    .switch{width:46px; height:28px; border-radius:999px; background: rgba(255,255,255,.10); border: 1px solid rgba(255,255,255,.14); position:relative; cursor:pointer; user-select:none; touch-action: manipulation;}
-    .knob{width:22px; height:22px; border-radius:999px; position:absolute; top:50%; transform: translateY(-50%); left:3px; background: rgba(255,255,255,.82); box-shadow: 0 12px 22px rgba(0,0,0,.28); transition: left .16s ease, background .16s ease;}
-    .switch.on{background: rgba(124,247,194,.20); border-color: rgba(124,247,194,.30)}
-    .switch.on .knob{left: 21px; background: rgba(124,247,194,.96)}
-
-    .resultBar{width:min(920px, 100%); display:flex; gap:10px; align-items:stretch;}
-    .btn.small{padding: 12px 14px; font-size: 13px; flex: 1;}
-
-    .note{width:min(920px, 100%); padding: 10px 14px; font-size: 12px; color: var(--muted); line-height: 1.65;}
-    .kbd{font-variant-numeric: tabular-nums; padding: 2px 6px; border:1px solid rgba(255,255,255,.14); border-bottom-color: rgba(255,255,255,.08); border-radius: 8px; background: rgba(255,255,255,.06);}
+    /* DQ風：白枠黒ウィンドウの選択肢 */
+    .dqChoices{
+      display:none; /* RESULT時のみ表示 */
+      padding: 10px;
+    }
+    .dqWindow{
+      background:#ffffff;
+      border-radius: 10px;
+      padding: 4px;
+    }
+    .dqWindowInner{
+      background:#000000;
+      border-radius: 8px;
+      padding: 12px;
+      border: 2px solid rgba(255,255,255,.18);
+    }
+    .dqRow{
+      display:flex;
+      gap:10px;
+      align-items:stretch;
+      justify-content:space-between;
+    }
+    .dqBtn{
+      flex:1;
+      appearance:none;
+      border: 2px solid rgba(255,255,255,.85);
+      background:#000000;
+      color:#ffffff;
+      border-radius: 10px;
+      padding: 14px 10px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: .5px;
+      cursor:pointer;
+      user-select:none;
+      touch-action: manipulation;
+      box-shadow: 0 10px 24px rgba(0,0,0,.35);
+    }
+    .dqBtn:active{transform: translateY(1px);}
+    .dqHint{
+      margin-top:10px;
+      font-size:12px;
+      color: rgba(255,255,255,.70);
+      line-height:1.6;
+      text-align:center;
+    }
 
     @media (max-width: 560px){
-      .stats{min-width: 0;}
-      .controls{flex-direction:column;}
-      .resultBar{flex-direction:column;}
-      .btn,.toggle{flex:1;}
+      canvas{height: min(92vh, 880px);}
+      .dqBtn{font-size: 17px; padding: 13px 10px;}
     }
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="card brand">
-        <div class="title">勇者が勝手に転ぶ冒険</div>
-        <div class="sub">RPGっぽく色々起きます（スコアは距離のみ）。レベル/HP/MP/称号/ローカルランキング。</div>
-      </div>
-      <div class="card stats" aria-label="stats">
-        <div class="stat"><div class="k">今回</div><div class="v" id="cur">0.0 m</div></div>
-        <div class="stat"><div class="k">本日ベスト</div><div class="v" id="daily">0.0 m</div></div>
-        <div class="stat"><div class="k">通算ベスト</div><div class="v" id="best">0.0 m</div></div>
-        <div class="stat"><div class="k">討伐</div><div class="v" id="kills">0</div></div>
-      </div>
-    </div>
-
     <div class="stage">
       <div class="card canvasWrap">
-        <!-- 内部解像度を少し上げてシャープに（CSSで拡大） -->
-        <canvas id="cv" width="1600" height="900" aria-label="game canvas"></canvas>
+        <canvas id="cv" aria-label="game canvas"></canvas>
       </div>
 
-      <div class="controls">
-        <button class="btn primary" id="btnStart"><span class="spark"></span><span id="btnText">冒険をはじめる</span></button>
-        <div class="card toggle" role="group" aria-label="settings">
-          <div class="label"><div class="t">SE</div><div class="d">レトロ効果音</div></div>
-          <div class="switch on" id="swSound" aria-label="toggle sound"><div class="knob"></div></div>
+      <!-- RESULT時だけ出す：DQ風「はい／いいえ」 -->
+      <div class="card dqChoices" id="dqChoices" aria-label="retry choices">
+        <div class="dqWindow">
+          <div class="dqWindowInner">
+            <div class="dqRow">
+              <button class="dqBtn" id="btnYes">はい</button>
+              <button class="dqBtn" id="btnNo">いいえ</button>
+            </div>
+          </div>
         </div>
-        <div class="card toggle" role="group" aria-label="settings">
-          <div class="label"><div class="t">振動</div><div class="d">対応端末のみ</div></div>
-          <div class="switch" id="swVibe" aria-label="toggle vibration"><div class="knob"></div></div>
-        </div>
-      </div>
-
-      <div class="resultBar">
-        <button class="btn small" id="btnShare">共有</button>
-        <button class="btn small" id="btnCopy">結果をコピー</button>
-      </div>
-
-      <div class="card note">
-        ・スコア：距離のみ（運ゲー）。戦闘/装備/レベル/HP/MP/ランドマーク/宝箱はスコア無関係。<br>
-        ・ランキング：端末内（LocalStorage）に Top10 を保存します。<br>
-        ・調整：<span class="kbd">FALL_RATE</span> / <span class="kbd">BASE_SPEED</span> / <span class="kbd">ENCOUNTER_MIN/MAX</span> / <span class="kbd">LANDMARK_MIN/MAX</span>。
+        <div class="dqHint">操作：READY中はキャンバスをタップで開始／RESULTは「はい」「いいえ」</div>
       </div>
     </div>
   </div>
@@ -113,9 +132,47 @@
 (() => {
   "use strict";
 
-  // ==============================
+  // =========================================================
+  // DPR対応（Canvas内部解像度を端末に合わせ、仮想解像度で描画）
+  // =========================================================
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d', { alpha: true });
+
+  const VW = 1600; // 仮想解像度（ゲーム座標系）
+  const VH = 900;
+
+  let view = { scale: 1, ox: 0, oy: 0, dpr: 1 };
+
+  function resizeCanvas(){
+    const rect = cv.getBoundingClientRect();
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+
+    const pxW = Math.max(1, Math.floor(rect.width * dpr));
+    const pxH = Math.max(1, Math.floor(rect.height * dpr));
+
+    if (cv.width !== pxW || cv.height !== pxH){
+      cv.width = pxW;
+      cv.height = pxH;
+    }
+
+    // 仮想解像度(VW×VH)をレターボックスでフィット
+    const sx = pxW / VW;
+    const sy = pxH / VH;
+    const s = Math.min(sx, sy);
+
+    const ox = (pxW - VW * s) * 0.5;
+    const oy = (pxH - VH * s) * 0.5;
+
+    view = { scale: s, ox, oy, dpr };
+  }
+
+  window.addEventListener('resize', resizeCanvas, {passive:true});
+  window.addEventListener('orientationchange', () => setTimeout(resizeCanvas, 50), {passive:true});
+  resizeCanvas();
+
+  // =========================================================
   // 調整パラメータ
-  // ==============================
+  // =========================================================
   const BASE_SPEED = 8.4;
   const SPEED_RAMP = 0.018;
   const FALL_RATE  = 0.0108;
@@ -138,9 +195,9 @@
   const BOSS_MIN_DIST = 170;   // m
   const BOSS_MAX_DIST = 260;   // m
 
-  // ==============================
+  // =========================================================
   // データ
-  // ==============================
+  // =========================================================
   const CLASSES = [
     { key:'hero',  name:'ゆうしゃ',     main:'#7cc9ff', effect:'slash' },
     { key:'mage',  name:'まほうつかい', main:'#c67cff', effect:'spell' },
@@ -216,33 +273,41 @@
     { name:'ギガント', icon:'🗿', tone:174 },
   ];
 
-  // ==============================
-  // DOM
-  // ==============================
-  const cv = document.getElementById('cv');
-  const ctx = cv.getContext('2d');
+  // =========================================================
+  // DQ風「はい／いいえ」
+  // =========================================================
+  const dqChoices = document.getElementById('dqChoices');
+  const btnYes = document.getElementById('btnYes');
+  const btnNo  = document.getElementById('btnNo');
 
-  const elCur = document.getElementById('cur');
-  const elDaily = document.getElementById('daily');
-  const elBest = document.getElementById('best');
-  const elKills = document.getElementById('kills');
+  function setChoicesVisible(v){
+    dqChoices.style.display = v ? 'block' : 'none';
+  }
 
-  const btnStart = document.getElementById('btnStart');
-  const btnText = document.getElementById('btnText');
-  const swSound = document.getElementById('swSound');
-  const swVibe = document.getElementById('swVibe');
+  btnYes.addEventListener('click', () => {
+    // RESULTからも確実に再開
+    triggerStart();
+  });
 
-  const btnShare = document.getElementById('btnShare');
-  const btnCopy = document.getElementById('btnCopy');
+  btnNo.addEventListener('click', () => {
+    // 終了（READYへ）
+    stopWalkBGM();
+    mode = MODE.READY;
+    active = null;
+    msg.text = '';
+    msg.dur = 0;
+    setChoicesVisible(false);
+    showMsg('また こんど たびにでよう', 1.1);
+  });
 
-  // ==============================
+  // =========================================================
   // LocalStorage
-  // ==============================
-  const STORE_KEY_BEST = 'dqfall-best-v3';
-  const STORE_KEY_DAILY_PREFIX = 'dqfall-daily-v3-';
-  const STORE_KEY_RANKING = 'dqfall-ranking-v3';
-  const STORE_KEY_SOUND = 'dqfall-sound-v3';
-  const STORE_KEY_VIBE  = 'dqfall-vibe-v3';
+  // =========================================================
+  const STORE_KEY_BEST = 'dqfall-best-v4';
+  const STORE_KEY_DAILY_PREFIX = 'dqfall-daily-v4-';
+  const STORE_KEY_RANKING = 'dqfall-ranking-v4';
+  const STORE_KEY_SOUND = 'dqfall-sound-v4';
+  const STORE_KEY_VIBE  = 'dqfall-vibe-v4';
 
   function todayKey(){
     const d = new Date();
@@ -269,42 +334,15 @@
   let dailyBest = Number(localStorage.getItem(STORE_KEY_DAILY_PREFIX + todayKey()) || '0');
   let ranking = loadRanking();
 
-  // ==============================
-  // Audio
-  // ==============================
+  // =========================================================
+  // Audio / Vibe（UIボタンは排除、内部設定のみ）
+  // =========================================================
   let audioCtx = null;
+  let soundOn = (localStorage.getItem(STORE_KEY_SOUND) ?? '1') === '1'; // デフォON
+  let vibeOn  = (localStorage.getItem(STORE_KEY_VIBE) ?? '0') === '1';  // デフォOFF
 
-  // 設定（重複宣言しない）
-  let soundOn = (localStorage.getItem(STORE_KEY_SOUND) ?? '1') === '1';
-  let vibeOn  = (localStorage.getItem(STORE_KEY_VIBE) ?? '0') === '1';
-
-  // 歩行BGMっぽいSE（著作物の旋律コピーは避けつつ「行進感」を出す）
   let walkTimer = null;
   let walkStep = 0;
-  function startWalkBGM(){
-    stopWalkBGM();
-    if (!soundOn) return;
-    ensureAudio();
-    const motif = [
-      {f:392, d:0.05, v:0.06},
-      {f:523, d:0.05, v:0.06},
-      {f:659, d:0.06, v:0.06},
-      {f:523, d:0.05, v:0.05},
-      {f:440, d:0.06, v:0.05},
-      {f:523, d:0.06, v:0.05},
-    ];
-    walkStep = 0;
-    walkTimer = setInterval(() => {
-      if (mode !== MODE.RUN || !soundOn) return;
-      const foot = (walkStep % 2 === 0) ? 196 : 220;
-      tone([{f:foot, d:0.03, v:0.035, g:0.0}], 'square');
-      if ((walkStep % 6) === 0) tone(motif, 'triangle');
-      walkStep++;
-    }, 220);
-  }
-  function stopWalkBGM(){
-    if (walkTimer){ clearInterval(walkTimer); walkTimer = null; }
-  }
 
   function ensureAudio(){
     if (!soundOn) return;
@@ -359,14 +397,34 @@
     if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
-  function syncToggles(){
-    swSound.classList.toggle('on', soundOn);
-    swVibe.classList.toggle('on', vibeOn);
+  function startWalkBGM(){
+    stopWalkBGM();
+    if (!soundOn) return;
+    ensureAudio();
+    const motif = [
+      {f:392, d:0.05, v:0.06},
+      {f:523, d:0.05, v:0.06},
+      {f:659, d:0.06, v:0.06},
+      {f:523, d:0.05, v:0.05},
+      {f:440, d:0.06, v:0.05},
+      {f:523, d:0.06, v:0.05},
+    ];
+    walkStep = 0;
+    walkTimer = setInterval(() => {
+      if (mode !== MODE.RUN || !soundOn) return;
+      const foot = (walkStep % 2 === 0) ? 196 : 220;
+      tone([{f:foot, d:0.03, v:0.035, g:0.0}], 'square');
+      if ((walkStep % 6) === 0) tone(motif, 'triangle');
+      walkStep++;
+    }, 220);
+  }
+  function stopWalkBGM(){
+    if (walkTimer){ clearInterval(walkTimer); walkTimer = null; }
   }
 
-  // ==============================
+  // =========================================================
   // RNG
-  // ==============================
+  // =========================================================
   let rng = mulberry32((Date.now() ^ (Math.random()*1e9)) >>> 0);
   function mulberry32(a){
     return function(){
@@ -377,9 +435,9 @@
     };
   }
 
-  // ==============================
+  // =========================================================
   // State
-  // ==============================
+  // =========================================================
   const MODE = { READY:0, RUN:1, FALLING:2, RESULT:3 };
   let mode = MODE.READY;
 
@@ -390,7 +448,6 @@
   let heroClass = null;
   let equipped = null;
 
-  // RPG-ish status
   let level = 1;
   let xp = 0;
   let nextXp = 20;
@@ -412,14 +469,10 @@
   let nextItemX = 780;
   let nextLandmarkX = 1100;
 
-  // boss
   let bossDist = 220;
   let bossDone = false;
 
-  // active
   let active = null;
-
-  // particles
   let particles = [];
 
   const hero = {
@@ -429,9 +482,9 @@
     crown:false,
   };
 
-  // ==============================
+  // =========================================================
   // Terrain
-  // ==============================
+  // =========================================================
   function groundY(x){
     const a = 22 * BUMPINESS;
     const b = 12 * BUMPINESS;
@@ -447,21 +500,14 @@
     return (groundY(x+e) - groundY(x-e)) / (2*e);
   }
 
-  // ==============================
+  // =========================================================
   // UI helpers
-  // ==============================
+  // =========================================================
   function fmt(m){ return (Math.max(0,m)).toFixed(1) + ' m'; }
-
-  function sync(){
-    elCur.textContent = fmt(dist);
-    elBest.textContent = fmt(best);
-    elDaily.textContent = fmt(dailyBest);
-    elKills.textContent = String(kills);
-  }
 
   function pushLog(s){
     logLines.push(s);
-    if (logLines.length > 16) logLines.shift();
+    if (logLines.length > 18) logLines.shift();
   }
 
   function showMsg(text, dur=0.95){
@@ -490,94 +536,27 @@
     }
   }
 
-  // ==============================
-  // Controls
-  // ==============================
-  // 誤爆防止：結果画面はキャンバスタップで開始しない
+  // =========================================================
+  // Controls（ボタン排除：キャンバスタップで開始。RESULTは「はい/いいえ」）
+  // =========================================================
   cv.addEventListener('pointerdown', () => {
     if (mode === MODE.READY) triggerStart();
-    // RUN/FALLING/RESULT は無視
   }, {passive:true});
 
-  btnStart.addEventListener('click', () => triggerStart());
-
   function triggerStart(){
+    // RUN/FALLING中の誤爆だけ禁止
     if (mode === MODE.RUN || mode === MODE.FALLING) return;
-    // RESULT はボタン操作のみ許可
-    if (mode === MODE.RESULT) return;
-    ensureAudio();
+
+    ensureAudio(); // iOS対策：ユーザー操作内でAudio解放
     startRun();
   }
 
-  swSound.addEventListener('click', () => {
-    soundOn = !soundOn;
-    try{ localStorage.setItem(STORE_KEY_SOUND, soundOn ? '1':'0'); } catch {}
-    syncToggles();
-    if (soundOn){ ensureAudio(); SFX.msg(); if (mode === MODE.RUN) startWalkBGM(); }
-    else { stopWalkBGM(); }
-  });
-
-  swVibe.addEventListener('click', () => {
-    vibeOn = !vibeOn;
-    try{ localStorage.setItem(STORE_KEY_VIBE, vibeOn ? '1':'0'); } catch {}
-    syncToggles();
-    vibrate(15);
-  });
-
-  btnShare.addEventListener('click', async () => {
-    const text = shareText();
-    try{
-      if (navigator.share){
-        await navigator.share({ text, title: '勇者が勝手に転ぶ冒険' });
-        showMsg('共有しました', 0.8);
-      } else {
-        await copyText(text);
-        showMsg('コピーしました', 0.8);
-      }
-    } catch {
-      showMsg('共有を中断', 0.8);
-    }
-  });
-
-  btnCopy.addEventListener('click', async () => {
-    await copyText(shareText());
-    showMsg('結果をコピー', 0.8);
-  });
-
-  async function copyText(text){
-    try{ await navigator.clipboard.writeText(text); }
-    catch {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
-    }
-  }
-
-  function shareText(){
-    const cls = heroClass ? heroClass.name : '？？？';
-    const inv = inventory.slice(0, 8).map(i => `${i.icon}${i.name}`).join(' / ');
-    const more = inventory.length > 8 ? ` (+${inventory.length-8})` : '';
-    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
-    const lm = landmarksSeen.slice(0,6).map(l => `${l.icon}${l.name}`).join(' / ');
-    const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
-    return `勇者が勝手に転ぶ冒険
-職業：${cls} Lv${level}
-称号：${title || '—'}
-距離：${fmt(dist)}
-討伐：${kills}（レア${rareCount}）
-武器：${wpn}
-入手：${inventory.length ? (inv + more) : 'なし'}
-地点：${landmarksSeen.length ? (lm + lmMore) : 'なし'}
-転倒：${lastCause || '—'}`;
-  }
-
-  // ==============================
+  // =========================================================
   // Start / Fall / Result
-  // ==============================
+  // =========================================================
   function startRun(){
+    setChoicesVisible(false);
+
     mode = MODE.RUN;
     dist = 0;
     speed = BASE_SPEED;
@@ -623,15 +602,12 @@
 
     rng = mulberry32(((Date.now() + Math.floor(Math.random()*1e9)) ^ 0xC0FFEE) >>> 0);
 
-    btnText.textContent = '冒険中…';
     SFX.start();
     vibrate(18);
     if (soundOn) startWalkBGM();
 
     pushLog(`▶ ${heroClass.name} は たびにでた！`);
     showMsg(`${heroClass.name} に きまりました`, 1.1);
-
-    sync();
   }
 
   function startFalling(){
@@ -696,7 +672,6 @@
   function finalizeResult(){
     stopWalkBGM();
     mode = MODE.RESULT;
-    btnText.textContent = 'もう一回';
 
     title = computeTitle();
 
@@ -723,13 +698,14 @@
     }
 
     pushLog(`◆ しょうごう：${title}`);
+    pushLog('▶ もういちど たびにでますか？');
 
-    sync();
+    setChoicesVisible(true);
   }
 
-  // ==============================
+  // =========================================================
   // Loop
-  // ==============================
+  // =========================================================
   let lastT = performance.now();
   requestAnimationFrame(loop);
 
@@ -777,6 +753,7 @@
         mp = clamp(mp - (rng()<0.35?1:0), 0, maxMp);
       }
 
+      // 何が起きてるか：イベントは msg が消えても分かるように「eventLine」を作る（renderで使用）
       if (!active && !bossDone && dist >= bossDist){
         const b = BOSSES[Math.floor(rng()*BOSSES.length)];
         active = {
@@ -969,7 +946,6 @@
       }
 
       if (best >= 180) hero.crown = true;
-      sync();
 
     } else if (mode === MODE.FALLING){
       if (active) active.t += dt;
@@ -994,13 +970,14 @@
         finalizeResult();
       }
 
-      sync();
-
     } else {
-      btnText.textContent = (best > 0) ? 'もう一回' : '冒険をはじめる';
+      // READY/RESULT：表示はrender側に任せる
     }
   }
 
+  // =========================================================
+  // Attack Effects
+  // =========================================================
   function doAttackEffect(ev){
     const cls = heroClass.effect;
     const mx = ev.mx;
@@ -1077,16 +1054,25 @@
     }
   }
 
-  // ==============================
-  // Render
-  // ==============================
+  // =========================================================
+  // Render（仮想解像度VW×VHで描画）
+  // =========================================================
   function render(){
-    const W = cv.width, H = cv.height;
+    // DPRレターボックス：実ピクセルに合わせてクリアしてから仮想座標へ
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,cv.width,cv.height);
+
+    // レターボックス背景（黒寄り）
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0,0,cv.width,cv.height);
+
+    // 仮想座標系へ
+    ctx.setTransform(view.scale, 0, 0, view.scale, view.ox, view.oy);
+
+    const W = VW, H = VH;
     const glow = clamp(best / 220, 0, 1);
 
-    ctx.clearRect(0,0,W,H);
-
-    // 背景（暗め）
+    // 背景
     ctx.save();
     const bg = ctx.createLinearGradient(0,0,0,H);
     bg.addColorStop(0, '#06112a');
@@ -1136,10 +1122,9 @@
 
     const running = (mode === MODE.RUN);
     const ang = running ? hero.tilt : (hero.rag + 1.1);
-    drawHero(ctx, hero.x, hero.y, ang, running, glow);
+    drawHeroDQ(ctx, hero.x, hero.y, ang, running, glow);
 
     drawParticlesWorld(ctx);
-
     ctx.restore();
 
     drawHUD(W, H, glow);
@@ -1151,31 +1136,29 @@
     }
   }
 
-  // ======== DQ Window (白枠×黒背景×白文字) ========
+  // =========================================================
+  // DQ Window (白枠×黒背景×白文字)
+  // =========================================================
   function dqWindow(x, y, w, h, r=6){
     ctx.save();
-    // outer white
     roundRect(ctx, x, y, w, h, r);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // inner black
     roundRect(ctx, x+4, y+4, w-8, h-8, Math.max(2, r-2));
     ctx.fillStyle = '#000000';
     ctx.fill();
 
-    // subtle inner border
     roundRect(ctx, x+6, y+6, w-12, h-12, Math.max(2, r-2));
     ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth = 2;
     ctx.stroke();
-
     ctx.restore();
   }
 
-  // ==============================
+  // =========================================================
   // Draw helpers (world)
-  // ==============================
+  // =========================================================
   function drawLandmark(ctx, ev){
     ctx.save();
     ctx.translate(ev.x, ev.y);
@@ -1289,15 +1272,15 @@
         ctx.arc(0, 0, 6, 0, Math.PI*2);
         ctx.fill();
       }
-
       ctx.restore();
     }
   }
 
-  // ==============================
-  // Hero (強化：マント + 光る目 + 大剣 + ドット感)
-  // ==============================
-  function drawHero(ctx, x, y, tilt, running, glow){
+  // =========================================================
+  // Hero（ドラクエ寄せ：兜/盾/マント/剣、二頭身ピクセル風）
+  // ※ 特定作品の既存スプライト模倣ではなく「一般的RPG勇者らしさ」に寄せています
+  // =========================================================
+  function drawHeroDQ(ctx, x, y, tilt, running, glow){
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(tilt);
@@ -1307,14 +1290,14 @@
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = 'rgba(0,0,0,0.75)';
     ctx.beginPath();
-    ctx.ellipse(0, 84, 48, 14, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 84, 50, 14, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
 
     const main = heroClass ? heroClass.main : '#7cc9ff';
     const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.85)';
 
-    const s = 3.5; // 少し大きく
+    const s = 3.8;
     const px = (dx, dy, w, h, c, a=1) => {
       ctx.save();
       ctx.globalAlpha = a;
@@ -1326,71 +1309,86 @@
     ctx.translate(-14*s, -28*s);
 
     const O = 'rgba(0,0,0,0.65)';
-    const swing = running ? Math.sin(hero.step)*1.8 : 0;
-    const leg = running ? Math.sin(hero.step)*2.0 : 0;
+    const swing = running ? Math.sin(hero.step)*1.9 : 0;
+    const leg = running ? Math.sin(hero.step)*2.1 : 0;
 
-    // mantle (厨二病：紫〜黒)
-    const mantle = 'rgba(75,0,120,0.92)';
-    px(5, 10 + swing*0.2, 14, 18, O, 0.30);
-    px(4, 11 + swing*0.2, 16, 20, mantle, 0.92);
-    // mantle highlight
-    px(5, 12 + swing*0.2, 2, 18, 'rgba(200,140,255,0.22)', 1);
+    // マント（深青＋裏赤っぽい差し色）
+    px(5, 10 + swing*0.2, 14, 20, O, 0.28);
+    px(4, 11 + swing*0.2, 16, 22, 'rgba(10,35,120,0.92)', 1);
+    px(4, 18 + swing*0.2, 16, 4, 'rgba(140,20,40,0.35)', 1);
 
-    // head outline
+    // かぶと（メタル）
     px(6, 0, 14, 12, O, 0.50);
-    // face
-    px(7, 1, 12, 10, 'rgba(255,255,255,0.92)');
+    px(7, 1, 12, 10, 'rgba(230,240,255,0.95)');
+    px(7, 1, 12, 3, 'rgba(190,210,235,0.95)');
+    // かぶと飾り
+    px(12, 0, 2, 2, 'rgba(255,215,90,0.95)', 1);
 
-    // hair/hood
-    px(7, 1, 12, 4, main, 0.95);
-    px(6, 4, 14, 3, main, 0.85);
+    // 顔（小さめ）
+    px(8, 4, 10, 7, 'rgba(255,235,220,0.92)');
+    // 目
+    px(11, 7, 2, 2, 'rgba(0,0,0,0.85)');
+    px(15, 7, 2, 2, 'rgba(0,0,0,0.85)');
 
-    // eyes (光る)
-    px(10, 5, 2, 2, 'rgba(0,0,0,0.8)');
-    px(15, 5, 2, 2, 'rgba(0,0,0,0.8)');
-    px(11, 6, 1, 1, 'rgba(255,80,80,0.95)');
-    px(16, 6, 1, 1, 'rgba(255,80,80,0.95)');
+    // からだ（よろい：main）
+    px(7, 12, 12, 12, O, 0.18);
+    px(8, 12, 10, 12, main, 1);
+    // 胸当ての線
+    px(8, 16, 10, 1, 'rgba(255,255,255,0.22)', 1);
+    // ベルト
+    px(8, 20, 10, 2, 'rgba(255,255,255,0.85)', 1);
+    px(11, 20, 4, 2, 'rgba(255,215,90,0.90)', 1);
 
-    // body (armor-ish)
-    px(7, 12, 12, 12, O, 0.20);
-    px(8, 12, 10, 12, main, 0.95);
-    // belt
-    px(8, 20, 10, 2, 'rgba(255,255,255,0.85)', 0.9);
-    px(11, 20, 4, 2, 'rgba(255,215,90,0.85)', 0.9);
+    // うで
+    px(4, 13 + swing*0.5, 3, 10, 'rgba(240,248,255,0.92)');
+    px(19, 13 - swing*0.5, 3, 10, 'rgba(240,248,255,0.92)');
+    // こて
+    px(4, 22 + swing*0.5, 3, 2, 'rgba(0,0,0,0.32)');
+    px(19, 22 - swing*0.5, 3, 2, 'rgba(0,0,0,0.32)');
 
-    // arms
-    px(4, 13 + swing*0.5, 3, 10, 'rgba(255,255,255,0.90)');
-    px(19, 13 - swing*0.5, 3, 10, 'rgba(255,255,255,0.90)');
-    // gloves
-    px(4, 22 + swing*0.5, 3, 2, 'rgba(0,0,0,0.35)');
-    px(19, 22 - swing*0.5, 3, 2, 'rgba(0,0,0,0.35)');
+    // たて（左手側）
+    ctx.save();
+    ctx.globalAlpha = 0.95;
+    const shX = 2*s, shY = (16 + swing*0.35)*s;
+    ctx.translate(shX, shY);
+    ctx.rotate(-0.08);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
+    ctx.fillRect(0, 0, 10*s, 12*s);
+    ctx.fillStyle = 'rgba(40,120,210,0.92)';
+    ctx.fillRect(0.8*s, 0.8*s, 8.4*s, 10.4*s);
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+    ctx.fillRect(1.2*s, 1.2*s, 2.0*s, 9.6*s);
+    ctx.fillStyle = 'rgba(255,215,90,0.80)';
+    ctx.fillRect(4.3*s, 5.2*s, 1.4*s, 1.4*s);
+    ctx.restore();
 
-    // legs
-    px(9, 24, 5, 10, 'rgba(255,255,255,0.90)');
-    px(14, 24 + leg*0.2, 5, 10, 'rgba(255,255,255,0.90)');
-    // boots
-    px(9, 32, 5, 3, 'rgba(0,0,0,0.35)');
-    px(14, 32 + leg*0.2, 5, 3, 'rgba(0,0,0,0.35)');
+    // あし
+    px(9, 24, 5, 10, 'rgba(245,250,255,0.92)');
+    px(14, 24 + leg*0.2, 5, 10, 'rgba(245,250,255,0.92)');
+    // くつ
+    px(9, 32, 5, 3, 'rgba(0,0,0,0.32)');
+    px(14, 32 + leg*0.2, 5, 3, 'rgba(0,0,0,0.32)');
 
-    // big sword
+    // けん（右手側）
     ctx.save();
     ctx.globalAlpha = 0.95;
     ctx.strokeStyle = blade;
-    ctx.lineWidth = 4.2;
+    ctx.lineWidth = 4.4;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(24*s, (18 + swing*0.2)*s);
-    ctx.lineTo(38*s, (6 - swing*0.2)*s);
+    ctx.lineTo(40*s, (6 - swing*0.2)*s);
     ctx.stroke();
-    // edge glow
-    ctx.globalAlpha = equipped && equipped.name === 'でんせつのけん' ? 0.28 : 0.12;
-    ctx.lineWidth = 9.0;
+    // ひかり
+    ctx.globalAlpha = (equipped && equipped.name === 'でんせつのけん') ? 0.28 : 0.10;
+    ctx.lineWidth = 10.0;
     ctx.beginPath();
     ctx.moveTo(24*s, (18 + swing*0.2)*s);
-    ctx.lineTo(38*s, (6 - swing*0.2)*s);
+    ctx.lineTo(40*s, (6 - swing*0.2)*s);
     ctx.stroke();
     ctx.restore();
 
+    // かんむり（ベストで追加）
     if (hero.crown){
       px(10, -5, 7, 3, 'rgba(255,215,90,0.95)');
       px(10, -7, 2, 2, 'rgba(255,215,90,0.95)');
@@ -1400,181 +1398,187 @@
     ctx.restore();
   }
 
-  // ==============================
-  // HUD + Result (スマホ視認性を最優先)
-  // ==============================
+  // =========================================================
+  // HUD + Result（視認性最優先）
+  // =========================================================
   function uiScale(){
-    // iPhone幅を想定：最小でも読めるように
-    const W = cv.width;
-    return clamp(W / 900, 0.95, 1.35);
+    return 1.0; // 仮想解像度固定なのでここは固定でOK（必要なら調整）
+  }
+
+  function eventLine(){
+    if (mode === MODE.RUN && active){
+      if (active.type === 'battle') return `${active.monster.name} が あらわれた`;
+      if (active.type === 'boss') return `${active.boss.name} が あらわれた！`;
+      if (active.type === 'item'){
+        const it = active.data;
+        if (it.type === 'chest') return `${it.name} を みつけた`;
+        if (it.type === 'loot') return `${it.name} を てにいれた`;
+        return `${it.name} を そうびした`;
+      }
+      if (active.type === 'landmark') return `${active.data.name} に とうちゃく`;
+      if (active.type === 'fall') return `ころんだ！`;
+    }
+    if (mode === MODE.FALLING) return `ころんだ！`;
+    if (mode === MODE.RESULT) return `もういちど たびにでますか？`;
+    return `タップして ぼうけん`;
   }
 
   function drawHUD(W, H, glow){
     const s = uiScale();
     const pad = Math.round(18 * s);
-    const w = Math.min(Math.round(900*s), W - pad*2);
+    const w = Math.min(920, W - pad*2);
     const x = (W - w)/2;
 
     // top window
-    dqWindow(x, 14, w, Math.round(132*s));
+    dqWindow(x, 14, w, 134);
 
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
 
-    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ぼうけん', x + Math.round(18*s), 14 + Math.round(34*s));
+    ctx.font = `900 22px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ぼうけん', x + 18, 48);
 
-    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = `800 18px ui-sans-serif, system-ui, -apple-system`;
     const cls = heroClass ? heroClass.name : '？？？';
     const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'ぶき：なし';
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + Math.round(18*s), 14 + Math.round(66*s));
-    ctx.fillText(`${wpn}`, x + Math.round(18*s), 14 + Math.round(92*s));
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + 18, 78);
+    ctx.fillText(`${wpn}`, x + 18, 104);
 
     // right metrics
     ctx.textAlign = 'right';
-    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`きょり ${fmt(dist)}`, x + w - Math.round(18*s), 14 + Math.round(40*s));
+    ctx.font = `900 22px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`きょり ${fmt(dist)}`, x + w - 18, 54);
 
-    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - Math.round(18*s), 14 + Math.round(72*s));
-    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - Math.round(18*s), 14 + Math.round(100*s));
+    ctx.font = `800 18px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - 18, 86);
+    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - 18, 112);
 
     // HP/MP
-    const barX = x + Math.round(18*s);
-    const barY = 14 + Math.round(104*s);
-    drawBar(barX, barY, Math.round(220*s), Math.round(12*s), hp / Math.max(1,maxHp), 'HP', s);
-    drawBar(barX, barY + Math.round(18*s), Math.round(220*s), Math.round(12*s), mp / Math.max(1,maxMp), 'MP', s);
+    const barX = x + 18;
+    const barY = 118;
+    drawBar(barX, barY, 230, 12, hp / Math.max(1,maxHp), 'HP');
+    drawBar(barX, barY + 18, 230, 12, mp / Math.max(1,maxMp), 'MP');
 
-    // message window
-    const msgH = Math.round(186*s);
+    // message window（何が起きてるかを常に出す）
+    const msgH = 190;
     dqWindow(x, H - msgH - 18, w, msgH);
 
     ctx.textAlign = 'left';
     ctx.fillStyle = '#ffffff';
 
-    // line1: 今起きてること（大）
-    const baseLine = (mode === MODE.RUN) ? '...' : 'タップして ぼうけん';
-    const line1 = msg.text || baseLine;
+    const line1 = msg.text || eventLine();
+    ctx.font = `900 26px ui-sans-serif, system-ui, -apple-system`;
+    wrapText(line1, x + 18, H - msgH + 30, w - 36, 30, 2);
 
-    ctx.font = `900 ${Math.round(26*s)}px ui-sans-serif, system-ui, -apple-system`;
-    wrapText(line1, x + Math.round(18*s), H - msgH, w - Math.round(36*s), Math.round(30*s), 2);
-
-    // logs (小)
-    ctx.globalAlpha = 1;
-    ctx.font = `700 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
-    const recent = logLines.slice(-3);
+    ctx.font = `700 16px ui-sans-serif, system-ui, -apple-system`;
+    const recent = logLines.slice(-4);
     for (let i=0;i<recent.length;i++){
-      ctx.fillText(recent[i], x + Math.round(18*s), H - Math.round(48*s) + i*Math.round(20*s));
+      ctx.fillText(recent[i], x + 18, H - 70 + i*20);
     }
   }
 
-  function drawBar(x, y, w, h, ratio, label, s){
+  function drawBar(x, y, w, h, ratio, label){
     ratio = clamp(ratio, 0, 1);
     ctx.save();
-    ctx.globalAlpha = 1;
 
-    // white border
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(x, y, w, h);
-    // black inside
+
     ctx.fillStyle = '#000000';
     ctx.fillRect(x+2, y+2, w-4, h-4);
 
-    // fill
     ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.85)' : 'rgba(124,201,255,0.85)';
     ctx.fillRect(x+3, y+3, Math.max(0, (w-6)*ratio), h-6);
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = `800 ${Math.round(14*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = `800 14px ui-sans-serif, system-ui, -apple-system`;
     ctx.textAlign = 'left';
-    ctx.fillText(label, x + w + Math.round(10*s), y + h - Math.round(1*s));
+    ctx.fillText(label, x + w + 10, y + h - 1);
 
     ctx.restore();
   }
 
   function drawCenterCard(W, H, glow, title, sub){
-    const s = uiScale();
-    const cw = Math.min(Math.round(860*s), W - Math.round(100*s));
-    const ch = Math.round(280*s);
+    const cw = Math.min(900, W - 120);
+    const ch = 290;
     const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - Math.round(10*s);
+    const cy = (H - ch)/2 - 10;
 
     dqWindow(cx, cy, cw, ch);
 
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
-    ctx.font = `950 ${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(title, cx + Math.round(22*s), cy + Math.round(66*s));
+    ctx.font = `950 30px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(title, cx + 22, cy + 68);
 
-    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    wrapText(sub, cx + Math.round(22*s), cy + Math.round(108*s), cw - Math.round(44*s), Math.round(26*s), 3);
+    ctx.font = `800 18px ui-sans-serif, system-ui, -apple-system`;
+    wrapText(sub, cx + 22, cy + 112, cw - 44, 26, 3);
 
     ctx.globalAlpha = 1;
-    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ローカルランキング Top3', cx + Math.round(22*s), cy + ch - Math.round(78*s));
+    ctx.font = `800 18px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ローカルランキング Top3', cx + 22, cy + ch - 78);
 
-    ctx.font = `700 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = `700 16px ui-sans-serif, system-ui, -apple-system`;
     const top3 = ranking.slice(0,3);
     for (let i=0;i<top3.length;i++){
       const r = top3[i];
-      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + Math.round(22*s), cy + ch - Math.round(52*s) + i*Math.round(20*s));
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + 22, cy + ch - 52 + i*20);
     }
   }
 
   function drawResultCard(W, H, glow){
-    const s = uiScale();
-    const cw = Math.min(Math.round(900*s), W - Math.round(90*s));
-    const ch = Math.round(500*s);
+    const cw = Math.min(940, W - 100);
+    const ch = 520;
     const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - Math.round(6*s);
+    const cy = (H - ch)/2 - 6;
 
     dqWindow(cx, cy, cw, ch);
 
     ctx.fillStyle = '#ffffff';
     ctx.textAlign = 'left';
 
-    ctx.font = `950 ${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('リザルト', cx + Math.round(22*s), cy + Math.round(58*s));
-
-    const cls = heroClass ? heroClass.name : '？？？';
-    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
+    ctx.font = `950 30px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('リザルト', cx + 22, cy + 58);
 
     // 距離を最強表示
     ctx.textAlign = 'right';
-    ctx.font = `950 ${Math.round(34*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`${fmt(dist)}`, cx + cw - Math.round(22*s), cy + Math.round(58*s));
+    ctx.font = `950 34px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`${fmt(dist)}`, cx + cw - 22, cy + 58);
 
     ctx.textAlign = 'left';
-    ctx.font = `850 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + Math.round(22*s), cy + Math.round(100*s));
-    ctx.fillText(`しょうごう：${title || '—'}`, cx + Math.round(22*s), cy + Math.round(128*s));
-    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + Math.round(22*s), cy + Math.round(156*s));
-    ctx.fillText(`ぶき：${wpn}`, cx + Math.round(22*s), cy + Math.round(184*s));
+    ctx.font = `850 18px ui-sans-serif, system-ui, -apple-system`;
+    const cls = heroClass ? heroClass.name : '？？？';
+    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
+
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + 22, cy + 102);
+    ctx.fillText(`しょうごう：${title || '—'}`, cx + 22, cy + 130);
+    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + 22, cy + 158);
+    ctx.fillText(`ぶき：${wpn}`, cx + 22, cy + 186);
 
     // 死因をデカく
-    ctx.font = `950 ${Math.round(26*s)}px ui-sans-serif, system-ui, -apple-system`;
-    wrapText(`しにかた：${lastCause || '—'}`, cx + Math.round(22*s), cy + Math.round(238*s), cw - Math.round(44*s), Math.round(30*s), 2);
+    ctx.font = `950 26px ui-sans-serif, system-ui, -apple-system`;
+    wrapText(`しにかた：${lastCause || '—'}`, cx + 22, cy + 238, cw - 44, 30, 2);
 
     // inventory + landmarks
-    ctx.font = `800 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.font = `800 16px ui-sans-serif, system-ui, -apple-system`;
     const list = inventory.slice(0, 10).map(i => `${i.icon}${i.name}`).join(' / ');
     const more = inventory.length > 10 ? ` (+${inventory.length-10})` : '';
-    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + Math.round(22*s), cy + Math.round(300*s), cw - Math.round(44*s), Math.round(22*s), 2);
+    wrapText(`にゅうしゅ：${inventory.length ? (list + more) : 'なし'}`, cx + 22, cy + 304, cw - 44, 22, 2);
 
     const lm = landmarksSeen.slice(0, 6).map(l => `${l.icon}${l.name}`).join(' / ');
     const lmMore = landmarksSeen.length > 6 ? ` (+${landmarksSeen.length-6})` : '';
-    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + Math.round(22*s), cy + Math.round(354*s), cw - Math.round(44*s), Math.round(22*s), 2);
+    wrapText(`ちてん：${landmarksSeen.length ? (lm + lmMore) : 'なし'}`, cx + 22, cy + 356, cw - 44, 22, 2);
 
-    // hint
+    // Yes/Noの誘導（実ボタンはHTML側）
     ctx.globalAlpha = 0.95;
-    ctx.font = `900 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('「もう一回」ボタンで つづける', cx + Math.round(22*s), cy + ch - Math.round(22*s));
+    ctx.font = `900 18px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('もういちど たびにでますか？（はい／いいえ）', cx + 22, cy + ch - 22);
     ctx.globalAlpha = 1;
   }
 
-  // ==============================
+  // =========================================================
   // Primitives
-  // ==============================
+  // =========================================================
   function roundRect(ctx, x, y, w, h, r){
     const rr = Math.min(r, w/2, h/2);
     ctx.beginPath();
@@ -1607,32 +1611,15 @@
 
   function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
-  // ==============================
-  // Minimal self-tests
-  // ==============================
-  function assert(cond, msg){
-    if (!cond) throw new Error('TEST FAIL: ' + msg);
-  }
-
-  function runSelfTests(){
-    assert(typeof soundOn === 'boolean', 'soundOn is boolean');
-    assert(typeof vibeOn === 'boolean', 'vibeOn is boolean');
-    assert(typeof SFX.level === 'function', 'SFX.level exists');
-    assert(typeof startWalkBGM === 'function', 'walkBGM exists');
-    assert(groundY(0) > 0, 'groundY returns positive');
-    // result tap guard
-    mode = MODE.RESULT;
-    // no exception expected
-  }
-
+  // =========================================================
   // init
-  syncToggles();
-  sync();
+  // =========================================================
+  setChoicesVisible(false);
   showMsg('タップして ぼうけん', 1.0);
 
+  // テスト用（必要なら #test で）
   if (location.hash === '#test'){
-    runSelfTests();
-    console.log('Self-tests passed');
+    console.log('VW/VH', VW, VH, 'canvas', cv.width, cv.height, 'view', view);
   }
 })();
 </script>
