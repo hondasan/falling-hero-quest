@@ -6,33 +6,41 @@
   <title>勇者が勝手に転ぶ冒険</title>
   <style>
     :root{
-      --bg0:#050815;
+      --bg0:#070b16;
       --text: rgba(255,255,255,.92);
     }
     *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
     html,body{
       height:100%;
       margin:0;
-      overflow:hidden;           /* スクロール禁止 */
-      background: radial-gradient(1000px 700px at 20% 0%, #14245a 0%, var(--bg0) 60%, #02040a 100%);
+      background: radial-gradient(1000px 700px at 20% 0%, #14245a 0%, var(--bg0) 60%, #050815 100%);
       color:var(--text);
+      overflow:hidden; /* スマホでスクロールさせない */
+      touch-action: manipulation;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
     }
 
-    /* 画面全面キャンバス */
-    #cv{
+    /* 画面はキャンバスだけ（見やすさ最優先） */
+    .stage{
       position:fixed;
-      inset:0;
-      width:100vw;
-      height:100svh; /* iOSのアドレスバー対策 */
+      inset: 0;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    canvas{
+      width:100%;
+      height:100%;
       display:block;
       background: linear-gradient(180deg, #0b1740 0%, #070f2a 60%, #050815 100%);
-      touch-action: manipulation;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
   </style>
 </head>
 <body>
-<canvas id="cv" aria-label="game canvas"></canvas>
+  <div class="stage">
+    <canvas id="cv" aria-label="game canvas"></canvas>
+  </div>
 
 <script>
 (() => {
@@ -41,65 +49,55 @@
   // ==============================
   // 調整パラメータ
   // ==============================
-  const BASE_SPEED = 8.8;
-  const SPEED_RAMP = 0.020;
-  const FALL_RATE  = 0.0115;
-  const BUMPINESS  = 1.00;
-  const CAMERA_LAG = 0.10;
-
+  const BASE_SPEED = 8.4;
+  const SPEED_RAMP = 0.018;
+  const FALL_RATE  = 0.0108;
+  const BUMPINESS  = 0.98;
+  const CAMERA_LAG = 0.09;
   const GRAVITY    = 34.0;
-  const FALL_SHOW_SEC = 0.95;
+  const FALL_SHOW_SEC = 0.85;
 
-  const ENCOUNTER_MIN = 460;
-  const ENCOUNTER_MAX = 860;
-  const ITEM_MIN = 420;
-  const ITEM_MAX = 780;
-  const LANDMARK_MIN = 740;
-  const LANDMARK_MAX = 1400;
+  const ENCOUNTER_MIN = 520;
+  const ENCOUNTER_MAX = 920;
+  const ITEM_MIN = 460;
+  const ITEM_MAX = 860;
+  const LANDMARK_MIN = 820;
+  const LANDMARK_MAX = 1500;
 
-  // 新：イベント（物語・事故・小ネタ）間隔
-  const EVENT_MIN = 360;
-  const EVENT_MAX = 720;
-
-  const RARE_ENEMY_RATE = 0.10;
-  const RARE_CHEST_RATE = 0.12;
+  const RARE_ENEMY_RATE = 0.08;
+  const RARE_CHEST_RATE = 0.10;
 
   // ボス（スコア無関係）
-  const BOSS_MIN_DIST = 160;   // m
+  const BOSS_MIN_DIST = 170;   // m
   const BOSS_MAX_DIST = 260;   // m
+
+  // 仮想キャンバス（描画は常にこの座標系。DPR/端末サイズに追従してスケール）
+  const VW = 1600;
+  const VH = 900;
 
   // ==============================
   // データ
   // ==============================
   const CLASSES = [
-    { key:'hero',  name:'ゆうしゃ',     main:'#57a6ff', effect:'slash' },
+    { key:'hero',  name:'ゆうしゃ',     main:'#7cc9ff', effect:'slash' },
     { key:'mage',  name:'まほうつかい', main:'#c67cff', effect:'spell' },
     { key:'thief', name:'とうぞく',     main:'#7cf7c2', effect:'multi' },
     { key:'war',   name:'せんし',       main:'#ffb36b', effect:'heavy' },
   ];
 
-  // 敵を増やす（見た目は絵文字だが、イベント性で差を付ける）
   const MONSTERS = [
-    { name:'スライム', icon:'🟦', tone:560 },
-    { name:'ゴースト', icon:'👻', tone:520 },
-    { name:'ゴブリン', icon:'👺', tone:480 },
-    { name:'ドラキー', icon:'🦇', tone:620 },
-    { name:'キメラ',   icon:'🪽', tone:660 },
-    { name:'いっかくうさぎ', icon:'🐰', tone:600 },
-    { name:'くさったしたい', icon:'🧟', tone:420 },
-    { name:'まじゅつし', icon:'🧙', tone:700 },
-    { name:'おおがらす', icon:'🐦‍⬛', tone:640 },
-    { name:'おおねずみ', icon:'🐀', tone:500 },
-    { name:'どくろあくま', icon:'💀', tone:380 },
-    { name:'まもの', icon:'👾', tone:560 },
+    { name:'スライム',   icon:'🟦', tone:560 },
+    { name:'ゴースト',   icon:'👻', tone:520 },
+    { name:'ゴブリン',   icon:'👺', tone:480 },
+    { name:'ドラキー',   icon:'🦇', tone:620 },
+    { name:'キメラ',     icon:'🪽', tone:660 },
+    { name:'メタル？',   icon:'⬜', tone:740 },
   ];
 
   const RARE_MONSTERS = [
     { name:'キングスライム', icon:'🟪', tone:820 },
     { name:'ゴールデンゴブリン', icon:'🟨', tone:900 },
     { name:'あやしい影', icon:'🟥', tone:860 },
-    { name:'ミラクルうさぎ', icon:'🐇', tone:960 },
-    { name:'メタル？', icon:'⬜', tone:740 },
   ];
 
   const WEAPONS = [
@@ -115,20 +113,16 @@
     { type:'loot', name:'やくそう', icon:'🌿' },
     { type:'loot', name:'せいすい', icon:'🧴' },
     { type:'loot', name:'ちいさなメダル', icon:'🟡' },
-    { type:'loot', name:'おまもり', icon:'🧿' },
-    { type:'loot', name:'ふしぎなこな', icon:'✨' },
   ];
 
   const CHESTS = [
     { type:'chest', name:'たからばこ', icon:'🧰' },
     { type:'chest', name:'あやしいはこ', icon:'📦' },
-    { type:'chest', name:'ふるいはこ', icon:'🗃️' },
   ];
 
   const RARE_CHESTS = [
     { type:'chest', name:'ゴールドたからばこ', icon:'💰' },
     { type:'chest', name:'ミミック？（たぶん）', icon:'🧲' },
-    { type:'chest', name:'きらきらのはこ', icon:'🎁' },
   ];
 
   const LANDMARKS = [
@@ -139,127 +133,14 @@
     { name:'ほこら', icon:'⛩️', xp:10, kind:'shrine' },
     { name:'橋', icon:'🌉', xp:9,  kind:'bridge' },
     { name:'森', icon:'🌲', xp:11, kind:'forest' },
-    { name:'塔', icon:'🗼', xp:12, kind:'tower' },
-    { name:'港町', icon:'⚓', xp:11, kind:'port' },
   ];
 
-  // ==============================
-  // イベント（50個）
-  //  - kind: 'story'|'luck'|'trap'|'rest'|'odd'
-  //  - text: 表示
-  //  - eff:  効果（hp/mp/xp/rareなどを少し動かす）
-  // ==============================
-  const EVENTS = [
-    { kind:'story', text:'みちばたに ふしぎな いしがある', eff:(st)=>{ st.xp+=3; st.log('＊ ふしぎな いしを なでた'); } },
-    { kind:'odd',   text:'くしゃみが でた！', eff:(st)=>{ st.hp-=1; st.log('▼ くしゃみで よろけた'); } },
-    { kind:'luck',  text:'よい かぜが ふいた', eff:(st)=>{ st.mp+=1; st.xp+=2; st.log('♪ なんか いいかんじ'); } },
-    { kind:'trap',  text:'ぬかるんだ みちだ', eff:(st)=>{ st.hp-=1; st.log('▼ くつが ぬけかけた'); } },
-    { kind:'story', text:'みちしるべが たおれている', eff:(st)=>{ st.xp+=4; st.log('＊ なおして おいた'); } },
-    { kind:'rest',  text:'こかげで ひとやすみ', eff:(st)=>{ st.hp+=2; st.mp+=1; st.log('◎ すこし かいふく'); } },
-    { kind:'odd',   text:'なぜか うしろから かいせんがくる', eff:(st)=>{ st.mp-=1; st.log('▼ へんな きぶん'); } },
-    { kind:'story', text:'つりばしが きしんでいる', eff:(st)=>{ st.xp+=3; st.log('＊ ゆっくり わたった'); } },
-    { kind:'luck',  text:'ちいさな えがおの こどもに あった', eff:(st)=>{ st.xp+=5; st.log('♪ げんきが でた'); } },
-    { kind:'trap',  text:'みえない だんさが ある', eff:(st)=>{ st.hp-=2; st.log('▼ ひざに きた'); } },
-
-    { kind:'odd',   text:'みちの はしで ねこが みている', eff:(st)=>{ st.xp+=3; st.log('＊ ねこは つよい'); } },
-    { kind:'story', text:'ふるい たてふだに ちずが かいてある', eff:(st)=>{ st.xp+=6; st.log('＊ ちずを おぼえた'); } },
-    { kind:'trap',  text:'くさむらが うごいた', eff:(st)=>{ st.hp-=1; st.log('▼ なんかに かまれた'); } },
-    { kind:'luck',  text:'みずたまりが きらきらしている', eff:(st)=>{ st.mp+=2; st.log('♪ きぶんが いい'); } },
-    { kind:'rest',  text:'あたたかい ひだまりだ', eff:(st)=>{ st.hp+=1; st.log('◎ ねむけが きえた'); } },
-    { kind:'odd',   text:'なぜか ずっと かゆい', eff:(st)=>{ st.mp-=1; st.log('▼ きになる'); } },
-    { kind:'story', text:'ひとりの たびびとが てを ふった', eff:(st)=>{ st.xp+=4; st.log('＊ たびは いい'); } },
-    { kind:'trap',  text:'こいしが ずっと いやがらせを してくる', eff:(st)=>{ st.hp-=1; st.log('▼ こいし つよい'); } },
-    { kind:'luck',  text:'「がんばれ」と どこかで きこえた', eff:(st)=>{ st.xp+=5; st.log('♪ ちからが わいた'); } },
-    { kind:'story', text:'ゆうしゃは ちょっと かっこつけた', eff:(st)=>{ st.mp+=1; st.log('＊ きめポーズ'); } },
-
-    { kind:'odd',   text:'かぜが まえがみを つかんだ', eff:(st)=>{ st.hp-=1; st.log('▼ めに はいった'); } },
-    { kind:'rest',  text:'ちいさな いずみに かおを あらった', eff:(st)=>{ st.hp+=2; st.log('◎ さっぱり'); } },
-    { kind:'trap',  text:'すべりやすい いしだたみ', eff:(st)=>{ st.hp-=1; st.log('▼ あしが すべった'); } },
-    { kind:'luck',  text:'おまもりが きらっと ひかった', eff:(st)=>{ st.mp+=1; st.xp+=3; st.log('♪ なんか まもられた'); } },
-    { kind:'story', text:'「ここで まってる」と いしに かいてある', eff:(st)=>{ st.xp+=4; st.log('＊ だれだ'); } },
-    { kind:'odd',   text:'いきなり うたが きこえる', eff:(st)=>{ st.mp-=1; st.log('▼ あたまに のこる'); } },
-    { kind:'rest',  text:'パンを かじった', eff:(st)=>{ st.hp+=1; st.log('◎ うまい'); } },
-    { kind:'trap',  text:'くつひもが ほどけた', eff:(st)=>{ st.hp-=1; st.log('▼ ほどけた（ほんとに）'); } },
-    { kind:'luck',  text:'「レアが でそうな きがする」', eff:(st)=>{ st.rareAura= Math.min(1, st.rareAura + 0.25); st.log('♪ きがするだけ'); } },
-    { kind:'story', text:'ふるい ほこらに おじぎした', eff:(st)=>{ st.xp+=6; st.log('＊ なんか えらい'); } },
-
-    { kind:'trap',  text:'ふみぬきそうな はしだ', eff:(st)=>{ st.hp-=2; st.log('▼ あぶなかった'); } },
-    { kind:'odd',   text:'みちが いつもより みちっぽい', eff:(st)=>{ st.xp+=2; st.log('＊ みちだ'); } },
-    { kind:'rest',  text:'くちぶえを ふいた', eff:(st)=>{ st.mp+=1; st.log('◎ きぶんてんかん'); } },
-    { kind:'luck',  text:'きれいな はねを ひろった', eff:(st)=>{ st.xp+=5; st.log('♪ なんか つよそう'); } },
-    { kind:'story', text:'はるか とおくに しろが みえる', eff:(st)=>{ st.xp+=4; st.log('＊ いつか いく'); } },
-    { kind:'trap',  text:'いしが せかいの いしだった', eff:(st)=>{ st.hp-=2; st.mp-=1; st.log('▼ せかいが いじわる'); } },
-    { kind:'odd',   text:'きゅうに じゅうりょくが つよい', eff:(st)=>{ st.hp-=1; st.log('▼ きのせい'); } },
-    { kind:'story', text:'みちのはしに ちいさな ほんが おちている', eff:(st)=>{ st.xp+=6; st.log('＊ つよそうな ことば'); } },
-    { kind:'luck',  text:'「いまの きみは いける」', eff:(st)=>{ st.hp+=1; st.mp+=1; st.log('♪ いける'); } },
-    { kind:'rest',  text:'まばたきを したら げんき', eff:(st)=>{ st.hp+=1; st.log('◎ げんき'); } },
-
-    { kind:'odd',   text:'とつぜん かげが かっこいい', eff:(st)=>{ st.xp+=3; st.log('＊ ちゅうにびょう'); } },
-    { kind:'trap',  text:'みみかきを しながら はしった', eff:(st)=>{ st.hp-=2; st.log('▼ だめ'); } },
-    { kind:'story', text:'「ここは きけん」と かきおき', eff:(st)=>{ st.xp+=4; st.log('＊ けいこく ありがとう'); } },
-    { kind:'luck',  text:'コインが ひとりで ころがってきた', eff:(st)=>{ st.xp+=4; st.log('♪ うそだろ'); } },
-    { kind:'rest',  text:'みずを のんだ', eff:(st)=>{ st.mp+=1; st.log('◎ うるおい'); } },
-    { kind:'trap',  text:'かたほうの くつが かるい', eff:(st)=>{ st.hp-=1; st.log('▼ いやな よかん'); } },
-    { kind:'odd',   text:'ひとりでに BGMが ならない（きがする）', eff:(st)=>{ st.mp-=1; st.log('▼ きがする'); } },
-    { kind:'story', text:'「ゆうしゃよ」と どこかで よばれた', eff:(st)=>{ st.xp+=5; st.log('＊ よばれた'); } },
-    { kind:'luck',  text:'きらっと まぶしい ひかり', eff:(st)=>{ st.xp+=5; st.mp+=1; st.log('♪ なんか すごい'); } },
-    { kind:'trap',  text:'みえない ひもに ひっかかった', eff:(st)=>{ st.hp-=2; st.log('▼ くやしい'); } },
-  ];
-
-  // ==============================
-  // 死に方（50個）
-  //  - 状況依存で選ぶので、同じ距離でも変化しやすい
-  // ==============================
-  const FALL_CAUSES_50 = [
-    'いしにつまずいた',
-    'くつひもが ほどけた',
-    'かぜが つよかった',
-    'みえないだんさ',
-    'じゅうりょくがつよい',
-    'せかいのいし',
-    'あしがわらった',
-    'くしゃみで まえがみが めに はいった',
-    'みみかきをしながら はしった',
-    'よそみして かっこつけた',
-    'たてを みがきすぎて すべった',
-    'つるつるの こいしに まけた',
-    'たびびとに てをふりすぎた',
-    'むだに だっしゅした',
-    'だいたんに いったら だめだった',
-    'ゆだんした そのしゅんかん',
-    '「いける」と おもった',
-    '「これが ゆうしゃの あるき」と おもった',
-    'しっぽ（ない）を ふんだ',
-    'どこかの むしに びびった',
-    'かげふみして かってに まけた',
-    'まぶしくて つい',
-    'くらくて つい',
-    'あしもとが ふわふわした',
-    'ははーん と なった',
-    'そうびが かっこよすぎた',
-    'マントが ひっかかった',
-    'マントが かっこよく なびきすぎた',
-    'たてが おもかった（きがした）',
-    'けんが ながかった（きがした）',
-    'みずたまりに かおが うつって びびった',
-    'みちが みちっぽすぎて あぶなかった',
-    'こかげが ここちよすぎた',
-    'パンが うまくて ぼんやりした',
-    'せなかが かゆくて だめだった',
-    'しんちょうに いったら だめだった',
-    'らんぼうに いったら だめだった',
-    'かみのけが すべてを もっていった',
-    'みえない ひもに ひっかかった',
-    'こいしが いやがらせを してきた',
-    'ふみだいが ふみだいじゃなかった',
-    'あしが もつれた',
-    'あしが しんでいた',
-    'ゆうしゃの ぷらいどが ころんだ',
-    'みちしるべを なおして まんぞくした',
-    'しろが みえたので あせった',
-    'ほこらに おじぎして ふらついた',
-    '「きょうは いける」からの だめ',
-    'さいごに えがおで ころんだ',
+  // 「見やすさ優先」で増やしても被りにくいよう、死因は長すぎない文体に寄せています
+  const FALL_CAUSES = [
+    'いしにつまずいた','くつひもがほどけた','かぜがつよかった','みえないだんさ',
+    'じゅうりょくがつよい','せかいのいし','あしがわらった','くしゃみで まえがみが みえない',
+    'みみかきをしながら はしった','ぬかるみに すべった','こおりで すべった','いばらに ひっかかった',
+    'うしろから ねこ','きのねに つまずいた','こけで すべった','おちばで すべった',
   ];
 
   const BOSSES = [
@@ -269,34 +150,55 @@
   ];
 
   // ==============================
-  // DOM / Canvas (DPR対応)
+  // DOM / Canvas
   // ==============================
   const cv = document.getElementById('cv');
-  const ctx = cv.getContext('2d', { alpha: true });
+  const ctx = cv.getContext('2d');
 
-  let DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-  let VW = 0, VH = 0;
+  // view transform (CSS -> virtual)
+  const view = { dpr: 1, scale: 1, ox: 0, oy: 0, cssW: 0, cssH: 0 };
 
-  function resize(){
-    DPR = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
-    const w = Math.floor(window.innerWidth);
-    const h = Math.floor(window.innerHeight);
-    VW = w; VH = h;
+  function resizeCanvas(){
+    const rect = cv.getBoundingClientRect();
+    const cssW = Math.max(1, Math.floor(rect.width));
+    const cssH = Math.max(1, Math.floor(rect.height));
+    const dpr = Math.min(3, window.devicePixelRatio || 1);
 
-    cv.width  = Math.floor(w * DPR);
-    cv.height = Math.floor(h * DPR);
-    // 以後の描画はCSSピクセル基準で
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    view.cssW = cssW;
+    view.cssH = cssH;
+    view.dpr = dpr;
+
+    // 仮想(1600x900)を端末にフィット（レターボックス）
+    const scale = Math.min(cssW / VW, cssH / VH);
+    view.scale = scale;
+    view.ox = (cssW - VW * scale) / 2;
+    view.oy = (cssH - VH * scale) / 2;
+
+    cv.width = Math.floor(cssW * dpr);
+    cv.height = Math.floor(cssH * dpr);
+
+    // 描画は「仮想座標」VW/VHで行う
+    ctx.setTransform(scale * dpr, 0, 0, scale * dpr, view.ox * dpr, view.oy * dpr);
   }
-  window.addEventListener('resize', resize, {passive:true});
-  resize();
+
+  window.addEventListener('resize', resizeCanvas, {passive:true});
+  resizeCanvas();
+
+  function clientToVirtual(e){
+    const r = cv.getBoundingClientRect();
+    const cx = (e.clientX - r.left);
+    const cy = (e.clientY - r.top);
+    const vx = (cx - view.ox) / view.scale;
+    const vy = (cy - view.oy) / view.scale;
+    return { x: vx, y: vy };
+  }
 
   // ==============================
   // LocalStorage
   // ==============================
-  const STORE_KEY_BEST = 'dqfall-best-v4';
-  const STORE_KEY_DAILY_PREFIX = 'dqfall-daily-v4-';
-  const STORE_KEY_RANKING = 'dqfall-ranking-v4';
+  const STORE_KEY_BEST = 'dqfall-best-v3';
+  const STORE_KEY_DAILY_PREFIX = 'dqfall-daily-v3-';
+  const STORE_KEY_RANKING = 'dqfall-ranking-v3';
 
   function todayKey(){
     const d = new Date();
@@ -321,47 +223,6 @@
   let best = Number(localStorage.getItem(STORE_KEY_BEST) || '0');
   let dailyBest = Number(localStorage.getItem(STORE_KEY_DAILY_PREFIX + todayKey()) || '0');
   let ranking = loadRanking();
-
-  // ==============================
-  // Audio（最小：無しでも動く）
-  // ==============================
-  let audioCtx = null;
-  let soundOn = true; // 外部UI排除のため、固定ON（必要なら後でメニュー化できます）
-
-  function ensureAudio(){
-    if (!soundOn) return;
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume().catch(()=>{});
-  }
-  function tone(seq, type='square'){
-    if (!soundOn) return;
-    ensureAudio();
-    if (!audioCtx) return;
-    let t = audioCtx.currentTime;
-    for (const s of seq){
-      const o = audioCtx.createOscillator();
-      const g = audioCtx.createGain();
-      o.type = type;
-      o.frequency.value = s.f;
-      o.connect(g); g.connect(audioCtx.destination);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(s.v ?? 0.08, t + 0.01);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + s.d);
-      o.start(t);
-      o.stop(t + s.d + 0.02);
-      t += s.d + (s.g ?? 0.02);
-    }
-  }
-  const SFX = {
-    start: () => tone([{f:330,d:0.06},{f:440,d:0.06},{f:660,d:0.10,g:0.03}]),
-    msg:   () => tone([{f:880,d:0.04,v:0.09}]),
-    hit:   () => tone([{f:220,d:0.05,v:0.10},{f:140,d:0.07,v:0.08}]),
-    item:  () => tone([{f:784,d:0.06,v:0.08},{f:988,d:0.08,v:0.08}]),
-    fall:  () => tone([{f:196,d:0.08,v:0.10},{f:110,d:0.14,v:0.08,g:0.03}]),
-    best:  () => tone([{f:523,d:0.08,v:0.09},{f:659,d:0.08,v:0.09},{f:784,d:0.10,v:0.10,g:0.04}]),
-    rare:  () => tone([{f:988,d:0.06,v:0.09},{f:1318,d:0.06,v:0.09},{f:1760,d:0.10,v:0.10,g:0.04}], 'sawtooth'),
-    boss:  () => tone([{f:220,d:0.10,v:0.10},{f:196,d:0.10,v:0.10},{f:174,d:0.14,v:0.10,g:0.05}], 'sawtooth'),
-  };
 
   // ==============================
   // RNG
@@ -405,13 +266,13 @@
   let lastCause = '';
   let title = '';
 
-  // 「今起きてること」専用の大メッセージ
-  let msg = { text:'', t:0, dur:0, kind:'' };
+  let msg = { text:'', t:0, dur:0 };
+  let hudFlash = 0;     // イベント発生後、下窓を拡張して見せる
+  let hudCompact = true; // 通常はコンパクト（冒険画面を広く）
 
   let nextEncounterX = 900;
   let nextItemX = 780;
   let nextLandmarkX = 1100;
-  let nextEventX = 640;
 
   // boss
   let bossDist = 220;
@@ -423,8 +284,8 @@
   // particles
   let particles = [];
 
-  // rare aura（イベントで少し上げる：レア遭遇率に影響）
-  let rareAura = 0;
+  // result choice (はい/いいえ)
+  let resultChoice = { on:false, yes:{x:0,y:0,w:0,h:0}, no:{x:0,y:0,w:0,h:0} };
 
   const hero = {
     x:0, y:0, vy:0,
@@ -440,7 +301,7 @@
     const a = 22 * BUMPINESS;
     const b = 12 * BUMPINESS;
     const c = 8  * BUMPINESS;
-    return (VH*0.62)
+    return 520
       + Math.sin(x * 0.016) * a
       + Math.sin(x * 0.043 + 1.9) * b
       + Math.sin(x * 0.085 + 0.7) * c;
@@ -458,14 +319,14 @@
   function pushLog(s){
     logLines.push(s);
     if (logLines.length > 16) logLines.shift();
+    hudFlash = Math.max(hudFlash, 1.6); // ログが増えたら少し拡張して見せる
   }
 
-  function showMsg(text, dur=1.15, kind=''){
+  function showMsg(text, dur=1.15){
     msg.text = text;
     msg.t = 0;
     msg.dur = dur;
-    msg.kind = kind;
-    SFX.msg();
+    hudFlash = Math.max(hudFlash, 2.2); // “何が起きたか” を見せる時間
   }
 
   function addXP(amount, reason){
@@ -480,12 +341,42 @@
       hp = Math.min(maxHp, hp + 3);
       mp = Math.min(maxMp, mp + 2);
       pushLog(`★ レベルが ${level} に あがった！`);
-      showMsg(`レベルが ${level} に あがった！`, 1.2, 'lv');
+      showMsg(`レベルが ${level} に あがった！`, 1.4);
       spawnBurst(hero.x + 80, hero.y - 40, heroClass ? heroClass.main : 'rgba(255,255,255,0.9)');
     }
   }
 
-  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
+  // ==============================
+  // Controls（タップ中心）
+  // ==============================
+  cv.addEventListener('pointerdown', (e) => {
+    const p = clientToVirtual(e);
+
+    // 範囲外（レターボックス部）は無視
+    if (p.x < 0 || p.x > VW || p.y < 0 || p.y > VH) return;
+
+    if (mode === MODE.READY){
+      startRun();
+      return;
+    }
+
+    // RESULT：はい/いいえをタップ
+    if (mode === MODE.RESULT && resultChoice.on){
+      if (hit(p, resultChoice.yes)) { startRun(); return; }
+      if (hit(p, resultChoice.no))  { mode = MODE.READY; return; }
+      return;
+    }
+
+    // RUN中：下窓を「一時的に拡張/縮小」切替（状況が見えない問題の対策）
+    if (mode === MODE.RUN){
+      hudCompact = !hudCompact;
+      hudFlash = Math.max(hudFlash, 0.8);
+    }
+  }, {passive:true});
+
+  function hit(p, r){
+    return p.x >= r.x && p.x <= r.x+r.w && p.y >= r.y && p.y <= r.y+r.h;
+  }
 
   // ==============================
   // Start / Fall / Result
@@ -519,7 +410,6 @@
     inventory = [];
     landmarksSeen = [];
     rareCount = 0;
-    rareAura = 0;
 
     logLines = [];
     lastCause = '';
@@ -528,7 +418,6 @@
     nextEncounterX = 680 + Math.floor(rng()*220);
     nextItemX = 520 + Math.floor(rng()*240);
     nextLandmarkX = 900 + Math.floor(rng()*380);
-    nextEventX = 520 + Math.floor(rng()*240);
 
     bossDone = false;
     bossDist = BOSS_MIN_DIST + rng()*(BOSS_MAX_DIST - BOSS_MIN_DIST);
@@ -538,9 +427,11 @@
 
     rng = mulberry32(((Date.now() + Math.floor(Math.random()*1e9)) ^ 0xC0FFEE) >>> 0);
 
-    SFX.start();
+    hudCompact = true;
+    hudFlash = 1.6;
+
     pushLog(`▶ ${heroClass.name} は たびにでた！`);
-    showMsg(`${heroClass.name} に きまりました`, 1.2, 'start');
+    showMsg(`${heroClass.name} に きまりました`, 1.3);
   }
 
   function startFalling(){
@@ -550,28 +441,11 @@
     hero.rag = hero.tilt;
     hero.ragV = (rng() < 0.5 ? -1 : 1) * (4 + rng()*7);
 
-    lastCause = pickFallCause();
+    lastCause = FALL_CAUSES[Math.floor(rng()*FALL_CAUSES.length)];
     pushLog(`▼ ${heroClass.name} は ${lastCause}`);
 
-    SFX.fall();
     active = { type:'fall', t:0 };
-  }
-
-  function pickFallCause(){
-    // 直前イベントや状況で「それっぽい」死因に寄せる
-    // 1) イベント直後はイベントに寄せる
-    // 2) HP/MP低いと弱ってる系
-    // 3) それ以外はランダム
-    const e = lastEventText || '';
-    if (e.includes('くつひも')) return 'くつひもが ほどけた';
-    if (e.includes('ぬかる')) return 'ぬかるみに ひざを もっていかれた';
-    if (e.includes('だんさ')) return 'みえないだんさ';
-    if (e.includes('かぜ')) return 'かぜが まえがみを つかんだ';
-    if (e.includes('みみかき')) return 'みみかきをしながら はしった';
-    if (e.includes('こいし')) return 'こいしが いやがらせを してきた';
-    if (hp <= 3) return 'あしが しんでいた';
-    if (mp <= 1) return '「いける」と おもった';
-    return FALL_CAUSES_50[Math.floor(rng()*FALL_CAUSES_50.length)];
+    showMsg(`${heroClass.name} は ${lastCause}`, 1.2);
   }
 
   function computeTitle(){
@@ -579,6 +453,7 @@
     const k = kills;
     const inv = inventory.length;
     const lm = landmarksSeen.length;
+    const w = equipped ? equipped.power : 0;
 
     if (rareCount >= 3) return 'レア狩りマスター';
     if (rareCount >= 1 && d < 70) return 'レアを見て転ぶ者';
@@ -594,6 +469,8 @@
     if (d >= 150) return '鋼の足腰';
     if (d >= 95)  return '冒険者見習い';
 
+    if (w >= 3) return '装備だけは一流';
+    if (k >= 3) return '初級討伐王';
     return '転倒の素質';
   }
 
@@ -607,6 +484,7 @@
       kills,
       rare: rareCount,
     };
+
     ranking.push(entry);
     ranking.sort((a,b) => b.dist - a.dist);
     ranking = ranking.slice(0, 10);
@@ -617,90 +495,23 @@
     mode = MODE.RESULT;
     title = computeTitle();
 
-    let isBest = false;
     if (dist > best){
       best = dist;
-      localStorage.setItem(STORE_KEY_BEST, String(best));
-      isBest = true;
+      try{ localStorage.setItem(STORE_KEY_BEST, String(best)); } catch {}
+      pushLog('★ さいこうきろく！');
+      showMsg('さいこうきろく！', 1.4);
+    } else {
+      showMsg('つぎは いける', 1.1);
     }
+
     if (dist > dailyBest){
       dailyBest = dist;
-      localStorage.setItem(STORE_KEY_DAILY_PREFIX + todayKey(), String(dailyBest));
+      try{ localStorage.setItem(STORE_KEY_DAILY_PREFIX + todayKey(), String(dailyBest)); } catch {}
     }
 
     updateRanking();
-
-    if (isBest){
-      SFX.best();
-      pushLog('★ さいこうきろく！');
-      showMsg('さいこうきろく！', 1.3, 'best');
-    } else {
-      showMsg('つぎは いける', 1.1, 'end');
-    }
-    pushLog(`◆ しょうごう：${title}`);
+    hudFlash = 3.0;
   }
-
-  // ==============================
-  // Events / Items / Battles
-  // ==============================
-  let lastEventText = '';
-
-  function runEvent(){
-    const ev = EVENTS[Math.floor(rng()*EVENTS.length)];
-    lastEventText = ev.text;
-
-    const st = {
-      hp, mp, xp,
-      rareAura,
-      log: (s)=>pushLog(s),
-    };
-
-    // 効果適用
-    try { ev.eff(st); } catch {}
-
-    // clamp
-    hp = clamp(st.hp, 0, maxHp);
-    mp = clamp(st.mp, 0, maxMp);
-    rareAura = clamp(st.rareAura ?? rareAura, 0, 1);
-
-    // xpは addXP を通したいので差分で入れる
-    const gained = Math.max(0, Math.floor((st.xp ?? xp) - xp));
-    if (gained > 0) addXP(gained, 'イベント');
-
-    showMsg(ev.text, 1.35, 'event');
-  }
-
-  // ==============================
-  // Controls（外部ボタン廃止）
-  //  - READY: タップで開始
-  //  - RESULT: 「はい」「いいえ」を押す
-  // ==============================
-  const tap = {x:0,y:0,down:false};
-
-  cv.addEventListener('pointerdown', (e) => {
-    ensureAudio();
-    const rect = cv.getBoundingClientRect();
-    tap.x = (e.clientX - rect.left);
-    tap.y = (e.clientY - rect.top);
-    tap.down = true;
-
-    if (mode === MODE.READY){
-      startRun();
-      return;
-    }
-    if (mode === MODE.RESULT){
-      // はい／いいえ判定
-      const hit = hitTestYesNo(tap.x, tap.y);
-      if (hit === 'yes'){
-        startRun();
-      } else if (hit === 'no'){
-        // いいえ：READYへ戻す（ランキング表示に戻る）
-        mode = MODE.READY;
-        showMsg('タップして ぼうけん', 1.0, 'ready');
-      }
-      return;
-    }
-  }, {passive:true});
 
   // ==============================
   // Loop
@@ -711,16 +522,25 @@
   function loop(now){
     const dt = Math.min(0.033, (now - lastT) / 1000);
     lastT = now;
+
+    // resize追従（iOS回転などのズレ対策）
+    // 低コストなので毎フレーム軽く検査
+    // ※rect取得は高いので、サイズ差が出やすいときだけ window.inner を見て更新
+    // ここでは単純に 10fps程度で更新
+    if ((now|0) % 100 < 16) resizeCanvas();
+
     update(dt);
     render();
+
     requestAnimationFrame(loop);
   }
 
   function update(dt){
     if (msg.dur > 0){
       msg.t += dt;
-      if (msg.t >= msg.dur){ msg.text = ''; msg.dur = 0; msg.kind=''; }
+      if (msg.t >= msg.dur){ msg.text = ''; msg.dur = 0; }
     }
+    if (hudFlash > 0) hudFlash = Math.max(0, hudFlash - dt);
 
     for (const p of particles){
       p.life -= dt;
@@ -744,16 +564,9 @@
       const targetTilt = clamp(slope * 0.030, -0.40, 0.40);
       hero.tilt += (targetTilt - hero.tilt) * 0.14;
 
-      const targetCam = hero.x - (VW * 0.35);
+      const targetCam = hero.x - 320;
       camX += (targetCam - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
 
-      // 疲労（軽く）
-      if (rng() < 0.01 * dt * 60){
-        hp = clamp(hp - (rng()<0.5?1:0), 0, maxHp);
-        mp = clamp(mp - (rng()<0.35?1:0), 0, maxMp);
-      }
-
-      // ボス
       if (!active && !bossDone && dist >= bossDist){
         const b = BOSSES[Math.floor(rng()*BOSSES.length)];
         active = {
@@ -766,21 +579,11 @@
         };
         bossDone = true;
         pushLog(`！！ ${b.name} が あらわれた`);
-        showMsg(`${b.name} が あらわれた！`, 1.2, 'boss');
-        SFX.boss();
+        showMsg(`${b.name} が あらわれた！`, 1.35);
       }
 
-      // イベント（新）
-      if (!active && hero.x >= nextEventX){
-        active = { type:'event', t:0 };
-        runEvent();
-        nextEventX += EVENT_MIN + Math.floor(rng()*(EVENT_MAX - EVENT_MIN));
-      }
-
-      // 戦闘
       if (!active && hero.x >= nextEncounterX){
-        const auraBonus = rareAura * 0.18;
-        const isRare = rng() < (RARE_ENEMY_RATE + auraBonus);
+        const isRare = rng() < RARE_ENEMY_RATE;
         const m = isRare ? RARE_MONSTERS[Math.floor(rng()*RARE_MONSTERS.length)] : MONSTERS[Math.floor(rng()*MONSTERS.length)];
         active = {
           type:'battle',
@@ -792,13 +595,11 @@
           my: groundY(hero.x + 520) - 110,
         };
         pushLog(`！ ${m.name} が あらわれた` + (isRare ? '（レア）' : ''));
-        showMsg(`${m.name} が あらわれた`, 1.05, 'battle');
-        if (isRare){ SFX.rare(); } else { SFX.msg(); }
+        showMsg(`${m.name} が あらわれた`, 1.2);
 
         nextEncounterX += ENCOUNTER_MIN + Math.floor(rng()*(ENCOUNTER_MAX-ENCOUNTER_MIN));
       }
 
-      // アイテム
       if (!active && hero.x >= nextItemX){
         const roll = rng();
         let it;
@@ -817,25 +618,21 @@
         if (it.type === 'loot'){
           inventory.push({ icon: it.icon, name: it.name, type: 'loot' });
           pushLog(`♪ ${it.name} を てにいれた`);
-          showMsg(`${it.name} を てにいれた`, 1.05, 'loot');
+          showMsg(`${it.name} を てにいれた`, 1.1);
           addXP(4 + Math.floor(rng()*3), 'ひろいもの');
           hp = clamp(hp + (it.name==='やくそう'?3:0), 0, maxHp);
           mp = clamp(mp + (it.name==='せいすい'?2:0), 0, maxMp);
-          SFX.item();
 
         } else if (it.type === 'chest'){
           const rare = !!it.rare;
           inventory.push({ icon: it.icon, name: it.name, type: 'chest' });
           pushLog(`♪ ${it.name} を みつけた` + (rare ? '（レア）' : ''));
-          showMsg(`${it.name} を みつけた`, 1.05, 'chest');
+          showMsg(`${it.name} を みつけた`, 1.1);
           if (rare){
             rareCount += 1;
-            SFX.rare();
             addXP(14 + Math.floor(rng()*8), 'レアたから');
             spawnBurst(hero.x + 220, hero.y - 60, 'rgba(255,215,90,0.95)');
-            rareAura = clamp(rareAura + 0.12, 0, 1);
           } else {
-            SFX.item();
             addXP(9 + Math.floor(rng()*5), 'たから');
           }
 
@@ -843,21 +640,19 @@
           equipped = it;
           inventory.push({ icon: it.icon, name: it.name, type: 'weapon' });
           pushLog(`♪ ${it.name} を そうびした`);
-          showMsg(`${it.name} を そうびした`, 1.05, 'weapon');
-          SFX.item();
+          showMsg(`${it.name} を そうびした`, 1.1);
           addXP(7 + it.power, 'そうび');
         }
 
         nextItemX += ITEM_MIN + Math.floor(rng()*(ITEM_MAX-ITEM_MIN));
       }
 
-      // ランドマーク
       if (!active && hero.x >= nextLandmarkX){
         const lm = LANDMARKS[Math.floor(rng()*LANDMARKS.length)];
         active = { type:'landmark', t:0, data: lm, x: hero.x + 520, y: groundY(hero.x + 520) - 120 };
         landmarksSeen.push(lm);
         pushLog(`◆ ${lm.name} に とうちゃく`);
-        showMsg(`${lm.name} に とうちゃく`, 1.05, 'landmark');
+        showMsg(`${lm.name} に とうちゃく`, 1.15);
 
         if (lm.kind === 'inn'){
           hp = maxHp;
@@ -873,7 +668,6 @@
         nextLandmarkX += LANDMARK_MIN + Math.floor(rng()*(LANDMARK_MAX-LANDMARK_MIN));
       }
 
-      // active進行
       if (active){
         active.t += dt;
 
@@ -883,18 +677,14 @@
           if (active.mx > targetX) active.mx -= approachSpeed * dt;
         }
 
-        if (active.type === 'event'){
-          if (active.t >= 1.05) active = null;
-
-        } else if (active.type === 'battle'){
-          if (active.t >= 0.70 && active.phase === 0){
+        if (active.type === 'battle'){
+          if (active.t >= 0.65 && active.phase === 0){
             active.phase = 1;
             doAttackEffect(active);
           }
-          if (active.t >= 1.15 && active.phase === 1){
+          if (active.t >= 1.10 && active.phase === 1){
             active.phase = 2;
             spawnPuff(active.mx, active.my, heroClass.main);
-            SFX.hit();
             pushLog(`→ ${active.monster.name} を たおした` + (active.rare ? '（レア）' : ''));
             kills += 1;
             addXP(active.rare ? (18 + Math.floor(rng()*10)) : (10 + Math.floor(rng()*6)), active.rare ? 'レア討伐' : '討伐');
@@ -904,45 +694,36 @@
             if (active.rare){
               rareCount += 1;
               spawnBurst(active.mx, active.my - 10, 'rgba(255,215,90,0.95)');
-              rareAura = clamp(rareAura + 0.10, 0, 1);
-            } else {
-              rareAura = clamp(rareAura - 0.04, 0, 1);
             }
-            showMsg(`${active.monster.name} を たおした`, 1.0, 'win');
+            showMsg(`${active.monster.name} を たおした`, 1.05);
           }
-          if (active.t >= 1.40){
-            active = null;
-          }
+          if (active.t >= 1.35) active = null;
 
         } else if (active.type === 'boss'){
-          if (active.t >= 0.85 && active.phase === 0){
+          if (active.t >= 0.80 && active.phase === 0){
             active.phase = 1;
             doBossAttackEffect(active);
           }
-          if (active.t >= 1.40 && active.phase === 1){
+          if (active.t >= 1.35 && active.phase === 1){
             active.phase = 2;
             spawnPuff(active.mx, active.my, 'rgba(255,255,255,0.9)');
-            SFX.hit();
             pushLog(`→ ${active.boss.name} を しりぞけた`);
             addXP(22 + Math.floor(rng()*10), 'ボス');
             hp = clamp(hp - 2, 0, maxHp);
             mp = clamp(mp - 1, 0, maxMp);
             spawnBurst(active.mx, active.my - 12, 'rgba(255,90,90,0.95)');
-            showMsg(`${active.boss.name} を しりぞけた！`, 1.0, 'bosswin');
+            showMsg(`${active.boss.name} を しりぞけた！`, 1.15);
           }
-          if (active.t >= 1.75){
-            active = null;
-          }
+          if (active.t >= 1.70) active = null;
 
         } else if (active.type === 'item'){
-          if (active.t >= 1.00) active = null;
+          if (active.t >= 0.95) active = null;
 
         } else if (active.type === 'landmark'){
-          if (active.t >= 1.10) active = null;
+          if (active.t >= 1.05) active = null;
         }
       }
 
-      // 転倒判定
       const chaos = (rng() - 0.5) * 0.95;
       const slopeRisk = Math.abs(slope) / 30;
       const fatigue = dist * 0.00018;
@@ -970,7 +751,7 @@
       }
 
       hero.x += 110 * dt;
-      camX += ((hero.x - (VW*0.35)) - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
+      camX += ((hero.x - 320) - camX) * (1 - Math.pow(1 - CAMERA_LAG, dt * 60));
 
       if (active && active.t >= FALL_SHOW_SEC){
         finalizeResult();
@@ -979,19 +760,94 @@
   }
 
   // ==============================
-  // Render（DQウィンドウ：大きい・白枠黒背景）
+  // FX
+  // ==============================
+  function doAttackEffect(ev){
+    const cls = heroClass.effect;
+    const mx = ev.mx;
+    const my = ev.my;
+
+    if (cls === 'spell'){
+      for (let i=0;i<10;i++){
+        const a = -0.2 + rng()*0.4;
+        const sp = 520 + rng()*260;
+        particles.push({ x:hero.x+70, y:hero.y-12, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.25, kind:'spark', color:heroClass.main });
+      }
+      pushLog('＊ まほう！');
+
+    } else if (cls === 'multi'){
+      for (let i=0;i<3;i++){
+        particles.push({ x:mx - 30, y:my - 16 + i*14, vx:-80, vy:-40 + i*20, life:0.25, kind:'slash', color:'rgba(255,255,255,0.9)' });
+      }
+      pushLog('≡ れんげき');
+
+    } else if (cls === 'heavy'){
+      spawnPuff(mx, my, 'rgba(255,255,255,0.9)');
+      for (let i=0;i<8;i++){
+        const a = rng()*Math.PI*2;
+        const sp = 280 + rng()*260;
+        particles.push({ x:mx, y:my, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 120, life:0.42 + rng()*0.22, kind:'spark', color:'rgba(255,255,255,0.85)' });
+      }
+      pushLog('！ つうこん');
+
+    } else {
+      particles.push({ x:mx-28, y:my-10, vx:-120, vy:-40, life:0.28, kind:'slash', color:'rgba(255,255,255,0.9)' });
+      pushLog('／ こうげき');
+    }
+
+    if (ev.rare){
+      spawnBurst(mx, my - 10, 'rgba(255,215,90,0.95)');
+    }
+  }
+
+  function doBossAttackEffect(ev){
+    const mx = ev.mx;
+    const my = ev.my;
+    spawnBurst(mx, my - 12, 'rgba(255,90,90,0.95)');
+    for (let i=0;i<10;i++){
+      const a = rng()*Math.PI*2;
+      const sp = 320 + rng()*360;
+      particles.push({ x:mx, y:my, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.28, kind:'spark', color:'rgba(255,90,90,0.85)' });
+    }
+    pushLog('！ ひっさつ');
+  }
+
+  function spawnPuff(x,y,color){
+    for (let i=0;i<10;i++){
+      const a = rng()*Math.PI*2;
+      const sp = 160 + rng()*220;
+      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 120, life:0.35 + rng()*0.25, kind:'puff', color });
+    }
+  }
+
+  function spawnBurst(x,y,color){
+    for (let i=0;i<18;i++){
+      const a = rng()*Math.PI*2;
+      const sp = 220 + rng()*360;
+      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 180, life:0.55 + rng()*0.30, kind:'spark', color });
+    }
+  }
+
+  // ==============================
+  // Render
   // ==============================
   function render(){
+    // 念のため transform を毎フレーム戻す（他の描画が触った時の安全）
+    ctx.setTransform(view.scale * view.dpr, 0, 0, view.scale * view.dpr, view.ox * view.dpr, view.oy * view.dpr);
+
     const W = VW, H = VH;
+    const glow = clamp(best / 220, 0, 1);
 
     ctx.clearRect(0,0,W,H);
 
     // 背景
+    ctx.save();
     const bg = ctx.createLinearGradient(0,0,0,H);
     bg.addColorStop(0, '#06112a');
     bg.addColorStop(1, '#02040a');
     ctx.fillStyle = bg;
     ctx.fillRect(0,0,W,H);
+    ctx.restore();
 
     // world
     ctx.save();
@@ -1007,7 +863,8 @@
     }
     ctx.lineTo(endX, H);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255,255,255,0.045)';
+
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.fill();
 
     ctx.beginPath();
@@ -1018,7 +875,6 @@
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Active objects
     if (active && active.type === 'landmark' && mode === MODE.RUN){
       drawLandmark(active);
     }
@@ -1030,268 +886,57 @@
       drawItem(active, hero.x + 520, groundY(hero.x + 520) - 120);
     }
 
-    // hero
     const running = (mode === MODE.RUN);
     const ang = running ? hero.tilt : (hero.rag + 1.1);
-    drawHero(hero.x, hero.y, ang, running);
+    drawHero(hero.x, hero.y, ang, running, glow);
 
     drawParticlesWorld();
 
     ctx.restore();
 
-    // HUD windows
-    drawHUD(W, H);
+    // UI（被りを根絶：可変レイアウト＋コンパクト/拡張）
+    drawHUD(W, H, glow);
 
     if (mode === MODE.READY){
-      drawCenterCard(W, H, 'タップで ぼうけん', 'しょくぎょうは かってに きまります');
+      drawCenterCard(W, H, glow, 'タップで ぼうけん', 'しょくぎょうは かってに きまります');
     } else if (mode === MODE.RESULT){
-      drawResultCard(W, H);
+      drawResultCard(W, H, glow);
     }
   }
 
-  function uiScale(){
-    // 文字を大きく。端末幅に合わせて倍率上げる
-    const s = clamp(VW / 900, 1.10, 1.75);
-    return s;
-  }
-
-  function dqWindow(x, y, w, h, r=8){
-    // outer white
+  // ======== DQ Window（白枠×黒背景×白文字） ========
+  function dqWindow(x, y, w, h, r=6){
+    ctx.save();
     roundRect(x, y, w, h, r);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
 
-    // inner black
-    roundRect(x+6, y+6, w-12, h-12, Math.max(3, r-3));
+    roundRect(x+4, y+4, w-8, h-8, Math.max(2, r-2));
     ctx.fillStyle = '#000000';
     ctx.fill();
 
-    // subtle inner border
-    roundRect(x+9, y+9, w-18, h-18, Math.max(3, r-3));
+    roundRect(x+6, y+6, w-12, h-12, Math.max(2, r-2));
     ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth = 2;
     ctx.stroke();
-  }
-
-  function drawHUD(W, H){
-    const s = uiScale();
-
-    // 画面上下に大窓を置く（DQっぽい）
-    const pad = Math.round(14 * s);
-    const w = W - pad*2;
-    const x = pad;
-
-    // 上：ステータス（高さは控えめだが文字は大きめ）
-    const topH = Math.round(148 * s);
-    dqWindow(x, pad, w, topH, Math.round(10*s));
-
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-
-    const cls = heroClass ? heroClass.name : '？？？';
-    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'ぶき：なし';
-
-    ctx.font = `900 ${Math.round(24*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ぼうけん', x + Math.round(18*s), pad + Math.round(36*s));
-
-    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, x + Math.round(18*s), pad + Math.round(72*s));
-
-    ctx.font = `800 ${Math.round(20*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`${wpn}`, x + Math.round(18*s), pad + Math.round(104*s));
-
-    // 右：距離と討伐（大きく）
-    ctx.textAlign = 'right';
-    ctx.font = `950 ${Math.round(26*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`きょり ${fmt(dist)}`, x + w - Math.round(18*s), pad + Math.round(44*s));
-
-    ctx.font = `900 ${Math.round(20*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`とうばつ ${kills}  レア${rareCount}`, x + w - Math.round(18*s), pad + Math.round(78*s));
-    ctx.fillText(`EXP ${xp}/${nextXp}`, x + w - Math.round(18*s), pad + Math.round(110*s));
-
-    // HP/MP（バーも大きく）
-    const barX = x + Math.round(18*s);
-    const barY = pad + Math.round(118*s);
-    drawBar(barX, barY, Math.round(260*s), Math.round(14*s), hp / Math.max(1,maxHp), 'HP', s);
-    drawBar(barX, barY + Math.round(20*s), Math.round(260*s), Math.round(14*s), mp / Math.max(1,maxMp), 'MP', s);
-
-    // 下：メッセージ（大窓：画面の約42%）
-    const msgH = Math.round(H * 0.42);
-    const my = H - msgH - pad;
-    dqWindow(x, my, w, msgH, Math.round(10*s));
-
-    // 1行目：今起きてること（最重要）
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffffff';
-    const mainLine = msg.text || (mode===MODE.RUN ? '...' : 'タップして ぼうけん');
-
-    ctx.font = `950 ${Math.round(34*s)}px ui-sans-serif, system-ui, -apple-system`;
-    wrapText(mainLine, x + Math.round(18*s), my + Math.round(48*s), w - Math.round(36*s), Math.round(40*s), 2);
-
-    // ログ3行（何が起きたか）
-    ctx.font = `800 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-    const recent = logLines.slice(-3);
-    const baseY = my + msgH - Math.round(28*s);
-    for (let i=0;i<recent.length;i++){
-      ctx.fillText(recent[i], x + Math.round(18*s), baseY - (2-i)*Math.round(26*s));
-    }
-  }
-
-  function drawBar(x, y, w, h, ratio, label, s){
-    ratio = clamp(ratio, 0, 1);
-    // white border
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(x, y, w, h);
-    // black inside
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(x+2, y+2, w-4, h-4);
-
-    // fill
-    ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.85)' : 'rgba(124,201,255,0.85)';
-    ctx.fillRect(x+3, y+3, Math.max(0, (w-6)*ratio), h-6);
-
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `900 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.textAlign = 'left';
-    ctx.fillText(label, x + w + Math.round(10*s), y + h - Math.round(1*s));
-  }
-
-  function drawCenterCard(W, H, title, sub){
-    const s = uiScale();
-    const cw = Math.min(Math.round(W * 0.92), W - Math.round(36*s));
-    const ch = Math.round(320*s);
-    const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - Math.round(10*s);
-
-    // 背景暗転
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,W,H);
     ctx.restore();
-
-    dqWindow(cx, cy, cw, ch, Math.round(10*s));
-
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-    ctx.font = `950 ${Math.round(36*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(title, cx + Math.round(22*s), cy + Math.round(76*s));
-
-    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-    wrapText(sub, cx + Math.round(22*s), cy + Math.round(130*s), cw - Math.round(44*s), Math.round(30*s), 3);
-
-    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('ローカルランキング Top3', cx + Math.round(22*s), cy + ch - Math.round(86*s));
-
-    ctx.font = `800 ${Math.round(20*s)}px ui-sans-serif, system-ui, -apple-system`;
-    const top3 = ranking.slice(0,3);
-    for (let i=0;i<top3.length;i++){
-      const r = top3[i];
-      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + Math.round(22*s), cy + ch - Math.round(54*s) + i*Math.round(26*s));
-    }
-  }
-
-  // RESULT：DQ風「はい／いいえ」
-  const yesNo = { yes:null, no:null }; // 当たり判定の矩形を毎回更新
-
-  function drawResultCard(W, H){
-    const s = uiScale();
-    const cw = Math.min(Math.round(W * 0.92), W - Math.round(36*s));
-    const ch = Math.round(Math.min(H * 0.72, 560*s));
-    const cx = (W - cw)/2;
-    const cy = (H - ch)/2 - Math.round(6*s);
-
-    // 背景暗転
-    ctx.save();
-    ctx.globalAlpha = 0.42;
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0,0,W,H);
-    ctx.restore();
-
-    dqWindow(cx, cy, cw, ch, Math.round(10*s));
-
-    ctx.fillStyle = '#ffffff';
-    ctx.textAlign = 'left';
-
-    ctx.font = `950 ${Math.round(36*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('リザルト', cx + Math.round(22*s), cy + Math.round(70*s));
-
-    // 距離は右上大表示
-    ctx.textAlign = 'right';
-    ctx.font = `950 ${Math.round(40*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText(`${fmt(dist)}`, cx + cw - Math.round(22*s), cy + Math.round(70*s));
-
-    ctx.textAlign = 'left';
-    ctx.font = `900 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
-
-    const cls = heroClass ? heroClass.name : '？？？';
-    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
-    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + Math.round(22*s), cy + Math.round(124*s));
-    ctx.fillText(`しょうごう：${title || '—'}`, cx + Math.round(22*s), cy + Math.round(156*s));
-    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + Math.round(22*s), cy + Math.round(188*s));
-    ctx.fillText(`ぶき：${wpn}`, cx + Math.round(22*s), cy + Math.round(220*s));
-
-    // 死因でかく
-    ctx.font = `950 ${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
-    wrapText(`しにかた：${lastCause || '—'}`, cx + Math.round(22*s), cy + Math.round(274*s), cw - Math.round(44*s), Math.round(36*s), 2);
-
-    // はい／いいえ（DQ風）
-    const qy = cy + ch - Math.round(170*s);
-    ctx.font = `950 ${Math.round(28*s)}px ui-sans-serif, system-ui, -apple-system`;
-    ctx.fillText('もういちど たびにでますか？', cx + Math.round(22*s), qy);
-
-    // 選択窓
-    const boxW = Math.round(320*s);
-    const boxH = Math.round(140*s);
-    const bx = cx + cw - boxW - Math.round(22*s);
-    const by = cy + ch - boxH - Math.round(22*s);
-    dqWindow(bx, by, boxW, boxH, Math.round(10*s));
-
-    // ハイライト（タップしやすく大きい行間）
-    const lineH = Math.round(52*s);
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffffff';
-    ctx.font = `950 ${Math.round(34*s)}px ui-sans-serif, system-ui, -apple-system`;
-
-    const yesX = bx + Math.round(26*s);
-    const yesY = by + Math.round(54*s);
-    const noX  = bx + Math.round(26*s);
-    const noY  = by + Math.round(54*s) + lineH;
-
-    ctx.fillText('はい', yesX, yesY);
-    ctx.fillText('いいえ', noX, noY);
-
-    // 当たり判定更新（CSSピクセル座標）
-    yesNo.yes = { x: bx, y: by, w: boxW, h: Math.round(boxH/2) };
-    yesNo.no  = { x: bx, y: by + Math.round(boxH/2), w: boxW, h: Math.round(boxH/2) };
-
-    // 矢印カーソル（DQ感）
-    ctx.fillText('▶', bx + Math.round(8*s), yesY);
-  }
-
-  function hitTestYesNo(x,y){
-    if (!yesNo.yes || !yesNo.no) return null;
-    const inRect = (r)=> (x>=r.x && x<=r.x+r.w && y>=r.y && y<=r.y+r.h);
-    if (inRect(yesNo.yes)) return 'yes';
-    if (inRect(yesNo.no)) return 'no';
-    return null;
   }
 
   // ==============================
-  // World draw
+  // Draw helpers (world)
   // ==============================
   function drawLandmark(ev){
     ctx.save();
     ctx.translate(ev.x, ev.y);
     ctx.globalAlpha = 0.98;
-    ctx.font = '32px ui-sans-serif, system-ui, -apple-system';
+    ctx.font = '28px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(ev.data.icon, 0, 0);
-    ctx.globalAlpha = 0.9;
+    ctx.globalAlpha = 0.85;
     ctx.fillStyle = '#ffffff';
-    ctx.font = '18px ui-sans-serif, system-ui, -apple-system';
-    ctx.fillText(ev.data.name, 0, 34);
+    ctx.font = '16px ui-sans-serif, system-ui, -apple-system';
+    ctx.fillText(ev.data.name, 0, 32);
     ctx.restore();
   }
 
@@ -1316,6 +961,13 @@
     ctx.font = '18px ui-sans-serif, system-ui, -apple-system';
     ctx.fillText(ev.boss.name, 0, 52);
 
+    if (ev.phase >= 1 && ev.t < 1.25){
+      ctx.globalAlpha = 0.28;
+      ctx.beginPath();
+      ctx.arc(0, 0, 92, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fill();
+    }
     ctx.restore();
   }
 
@@ -1323,7 +975,7 @@
     ctx.save();
     ctx.translate(ev.mx, ev.my);
     ctx.globalAlpha = 1;
-    ctx.font = ev.rare ? '44px ui-sans-serif, system-ui, -apple-system' : '38px ui-sans-serif, system-ui, -apple-system';
+    ctx.font = ev.rare ? '42px ui-sans-serif, system-ui, -apple-system' : '36px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
@@ -1334,7 +986,6 @@
     ctx.arc(0, 0, ev.rare ? 36 : 28, 0, Math.PI*2);
     ctx.fillStyle = ev.rare ? 'rgba(255,215,90,0.65)' : (heroClass ? heroClass.main : 'rgba(255,255,255,0.6)');
     ctx.fill();
-
     ctx.restore();
   }
 
@@ -1343,7 +994,7 @@
     ctx.translate(x, y);
     const it = ev.data;
     ctx.globalAlpha = 1;
-    ctx.font = (it.rare ? 36 : 30) + 'px ui-sans-serif, system-ui, -apple-system';
+    ctx.font = (it.rare ? 34 : 28) + 'px ui-sans-serif, system-ui, -apple-system';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#ffffff';
@@ -1351,7 +1002,7 @@
     if (it.rare){
       ctx.globalAlpha = 0.22;
       ctx.beginPath();
-      ctx.arc(0, 0, 36, 0, Math.PI*2);
+      ctx.arc(0, 0, 34, 0, Math.PI*2);
       ctx.fillStyle = 'rgba(255,215,90,0.75)';
       ctx.fill();
     }
@@ -1388,10 +1039,9 @@
   }
 
   // ==============================
-  // Hero（青い勇者＋盾＋剣：提示画像寄せ）
-  //  - ドット絵風に fillRect で描画
+  // Hero（ドット寄り：見やすさ優先でコントラスト強め）
   // ==============================
-  function drawHero(x, y, tilt, running){
+  function drawHero(x, y, tilt, running, glow){
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(tilt);
@@ -1401,11 +1051,14 @@
     ctx.globalAlpha = 0.25;
     ctx.fillStyle = 'rgba(0,0,0,0.75)';
     ctx.beginPath();
-    ctx.ellipse(0, 84, 52, 14, 0, 0, Math.PI*2);
+    ctx.ellipse(0, 84, 48, 14, 0, 0, Math.PI*2);
     ctx.fill();
     ctx.restore();
 
-    const s = 4.0; // 大きめ二頭身
+    const main = heroClass ? heroClass.main : '#7cc9ff';
+    const blade = equipped ? equipped.blade : 'rgba(255,255,255,0.85)';
+
+    const s = 3.7;
     const px = (dx, dy, w, h, c, a=1) => {
       ctx.save();
       ctx.globalAlpha = a;
@@ -1414,124 +1067,300 @@
       ctx.restore();
     };
 
-    // 色（青勇者）
-    const OUT = 'rgba(0,0,0,0.65)';
-    const BLUE = '#3f86ff';
-    const BLUE2 = '#2f66d8';
-    const WHITE = '#ffffff';
-    const SKIN = '#f2b7a7';
-    const STEEL = '#dfe8ff';
-    const swing = running ? Math.sin(hero.step)*1.7 : 0;
-    const leg = running ? Math.sin(hero.step)*1.7 : 0;
+    ctx.translate(-14*s, -28*s);
 
-    // 左上基準へ
-    ctx.translate(-14*s, -30*s);
+    const O = 'rgba(0,0,0,0.70)';
+    const swing = running ? Math.sin(hero.step)*1.8 : 0;
+    const leg = running ? Math.sin(hero.step)*2.0 : 0;
 
-    // からだ外枠
-    px(6, 2, 16, 30, OUT, 0.18);
+    // mantle
+    const mantle = 'rgba(75,0,120,0.92)';
+    px(5, 10 + swing*0.2, 14, 18, O, 0.30);
+    px(4, 11 + swing*0.2, 16, 20, mantle, 0.92);
+    px(5, 12 + swing*0.2, 2, 18, 'rgba(200,140,255,0.22)', 1);
 
-    // ヘルメット（青＋白ライン）
-    px(7, 2, 14, 10, BLUE, 1);
-    px(8, 4, 12, 3, WHITE, 1);        // ひたいの白帯
-    px(8, 7, 12, 1, BLUE2, 1);
+    // head outline + face
+    px(6, 0, 14, 12, O, 0.55);
+    px(7, 1, 12, 10, 'rgba(255,255,255,0.92)');
 
-    // 顔
-    px(9, 8, 10, 6, SKIN, 1);
+    // hair/helmet
+    px(7, 1, 12, 4, main, 0.98);
+    px(6, 4, 14, 3, main, 0.90);
 
-    // 目（黒）
-    px(11, 10, 1, 1, '#000', 1);
-    px(16, 10, 1, 1, '#000', 1);
+    // eyes
+    px(10, 5, 2, 2, 'rgba(0,0,0,0.85)');
+    px(15, 5, 2, 2, 'rgba(0,0,0,0.85)');
+    px(11, 6, 1, 1, 'rgba(255,80,80,0.95)');
+    px(16, 6, 1, 1, 'rgba(255,80,80,0.95)');
 
-    // 胴体（青鎧）
-    px(8, 14, 12, 10, BLUE, 1);
-    px(8, 18, 12, 2, WHITE, 0.95);    // 胸の白ライン
-    px(10, 16, 2, 2, WHITE, 0.9);
-    px(16, 16, 2, 2, WHITE, 0.9);
+    // body
+    px(7, 12, 12, 12, O, 0.22);
+    px(8, 12, 10, 12, main, 0.98);
 
-    // 腕（右：剣、左：盾）
-    px(5, 15 + swing*0.4, 3, 10, SKIN, 0.95);
-    px(20, 15 - swing*0.4, 3, 10, SKIN, 0.95);
+    // belt
+    px(8, 20, 10, 2, 'rgba(255,255,255,0.90)', 0.9);
+    px(11, 20, 4, 2, 'rgba(255,215,90,0.90)', 0.9);
 
-    // 手袋
-    px(5, 23 + swing*0.4, 3, 2, BLUE2, 1);
-    px(20, 23 - swing*0.4, 3, 2, BLUE2, 1);
+    // arms
+    px(4, 13 + swing*0.5, 3, 10, 'rgba(255,255,255,0.92)');
+    px(19, 13 - swing*0.5, 3, 10, 'rgba(255,255,255,0.92)');
+    px(4, 22 + swing*0.5, 3, 2, 'rgba(0,0,0,0.40)');
+    px(19, 22 - swing*0.5, 3, 2, 'rgba(0,0,0,0.40)');
 
-    // 足
-    px(10, 24, 5, 9, BLUE, 1);
-    px(15, 24 + leg*0.2, 5, 9, BLUE, 1);
-    // ブーツ
-    px(10, 32, 5, 3, BLUE2, 1);
-    px(15, 32 + leg*0.2, 5, 3, BLUE2, 1);
+    // legs + boots
+    px(9, 24, 5, 10, 'rgba(255,255,255,0.92)');
+    px(14, 24 + leg*0.2, 5, 10, 'rgba(255,255,255,0.92)');
+    px(9, 32, 5, 3, 'rgba(0,0,0,0.40)');
+    px(14, 32 + leg*0.2, 5, 3, 'rgba(0,0,0,0.40)');
 
-    // 盾（左手側：前面）
-    // 白枠青盾 + 中央マーク
-    px(2, 17, 6, 10, WHITE, 1);
-    px(3, 18, 4, 8, BLUE, 1);
-    px(4, 21, 2, 2, WHITE, 1);
-
-    // 剣（右手側：銀）
+    // sword
     ctx.save();
     ctx.globalAlpha = 0.95;
-    ctx.strokeStyle = STEEL;
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'square';
+    ctx.strokeStyle = blade;
+    ctx.lineWidth = 4.4;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(24*s, (20 + swing*0.2)*s);
-    ctx.lineTo(36*s, (6 - swing*0.2)*s);
+    ctx.moveTo(24*s, (18 + swing*0.2)*s);
+    ctx.lineTo(38*s, (6 - swing*0.2)*s);
     ctx.stroke();
-    // 柄
-    ctx.strokeStyle = '#7a5a2a';
-    ctx.lineWidth = 6;
+
+    ctx.globalAlpha = equipped && equipped.name === 'でんせつのけん' ? 0.28 : 0.12;
+    ctx.lineWidth = 9.2;
     ctx.beginPath();
-    ctx.moveTo(22*s, (22 + swing*0.2)*s);
-    ctx.lineTo(25*s, (19 + swing*0.2)*s);
+    ctx.moveTo(24*s, (18 + swing*0.2)*s);
+    ctx.lineTo(38*s, (6 - swing*0.2)*s);
     ctx.stroke();
     ctx.restore();
 
-    // 冠（ベスト条件）
     if (hero.crown){
-      px(12, -2, 8, 3, 'rgba(255,215,90,0.95)', 1);
-      px(12, -4, 2, 2, 'rgba(255,215,90,0.95)', 1);
-      px(18, -4, 2, 2, 'rgba(255,215,90,0.95)', 1);
+      px(10, -5, 7, 3, 'rgba(255,215,90,0.95)');
+      px(10, -7, 2, 2, 'rgba(255,215,90,0.95)');
+      px(15, -7, 2, 2, 'rgba(255,215,90,0.95)');
     }
 
     ctx.restore();
   }
 
   // ==============================
-  // Effects
+  // HUD（ここが「被り対策」と「冒険画面を広く」の中心）
   // ==============================
-  function doAttackEffect(ev){
-    const mx = ev.mx;
-    const my = ev.my;
-    particles.push({ x:mx-28, y:my-10, vx:-120, vy:-40, life:0.30, kind:'slash', color:'rgba(255,255,255,0.9)' });
-    spawnPuff(mx, my, heroClass ? heroClass.main : 'rgba(255,255,255,0.9)');
-    if (ev.rare){
-      spawnBurst(mx, my - 10, 'rgba(255,215,90,0.95)');
+  function uiScale(){
+    // 端末差で文字が潰れないように、VW基準でクランプ
+    return clamp(VW / 900, 1.0, 1.25);
+  }
+
+  function drawHUD(W, H, glow){
+    const s = uiScale();
+
+    const pad = Math.round(18 * s);
+    const w = Math.min(Math.round(920*s), W - pad*2);
+    const x = (W - w)/2;
+
+    // ===== 上：ミニHUD（固定情報を減らして“絶対に被らない”）
+    // 高さは “内容に合わせて” yカーソルで積み上げる
+    let y = 14;
+    let topInnerY = y + Math.round(16*s);
+
+    const topH = Math.round(118*s);
+    dqWindow(x, y, w, topH);
+
+    // 1行目：左「ぼうけん」 右「距離」
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'alphabetic';
+
+    ctx.textAlign = 'left';
+    ctx.font = `950 ${Math.round(22*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ぼうけん', x + Math.round(18*s), y + Math.round(34*s));
+
+    ctx.textAlign = 'right';
+    ctx.font = `950 ${Math.round(26*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`きょり ${fmt(dist)}`, x + w - Math.round(18*s), y + Math.round(36*s));
+
+    // 2行目：職業/武器（長い場合は省略）
+    const cls = heroClass ? heroClass.name : '？？？';
+    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'ぶき：なし';
+    ctx.textAlign = 'left';
+    ctx.font = `850 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+
+    const line2 = `しょくぎょう：${cls}  Lv${level}`;
+    ctx.fillText(ellipsize(line2, w - Math.round(36*s)), x + Math.round(18*s), y + Math.round(70*s));
+    ctx.fillText(ellipsize(wpn, w - Math.round(36*s)), x + Math.round(18*s), y + Math.round(96*s));
+
+    // HP/MPは下窓で見せる（上に詰め込まない）
+    // ===== 下：メッセージ（普段はコンパクト、イベント時だけ拡張）
+    const expand = (mode !== MODE.RUN) || (!hudCompact) || (hudFlash > 0.01) || (msg.text && msg.dur > 0);
+    const msgH = expand ? Math.round(240*s) : Math.round(150*s);
+    const msgY = H - msgH - 18;
+
+    dqWindow(x, msgY, w, msgH);
+
+    // ここに「今なにが起きてるか」を最優先で表示
+    const line1 = msg.text
+      ? msg.text
+      : (mode === MODE.RUN ? '...' : 'タップして ぼうけん');
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+
+    // でかい1行（折り返し最大2行）
+    ctx.font = `950 ${Math.round(28*s)}px ui-sans-serif, system-ui, -apple-system`;
+    const used = wrapTextR(line1, x + Math.round(18*s), msgY + Math.round(42*s), w - Math.round(36*s), Math.round(34*s), 2);
+
+    // コンパクト時：ログは1行だけ
+    // 拡張時：ログ3行＋ステータス（HP/MP/討伐/EXP）
+    const recent = logLines.slice(-(expand ? 3 : 1));
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+
+    let ly = msgY + Math.round(42*s) + used * Math.round(34*s) + Math.round(14*s);
+    for (let i=0;i<recent.length;i++){
+      ctx.fillText(ellipsize(recent[i], w - Math.round(36*s)), x + Math.round(18*s), ly);
+      ly += Math.round(24*s);
+    }
+
+    if (expand){
+      // ステータス行（被り回避：描画位置は ly を基準に積み上げ）
+      ly += Math.round(8*s);
+
+      ctx.font = `900 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+      ctx.fillText(`とうばつ ${kills}  レア${rareCount}   EXP ${xp}/${nextXp}`, x + Math.round(18*s), ly);
+      ly += Math.round(24*s);
+
+      drawBar(x + Math.round(18*s), ly, Math.round(360*s), Math.round(14*s), hp / Math.max(1,maxHp), 'HP', s);
+      ly += Math.round(22*s);
+      drawBar(x + Math.round(18*s), ly, Math.round(360*s), Math.round(14*s), mp / Math.max(1,maxMp), 'MP', s);
+
+      // 小ヒント（UI切替）
+      ctx.globalAlpha = 0.88;
+      ctx.font = `800 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
+      ctx.fillText('（タップで表示サイズ切替）', x + Math.round(18*s), msgY + msgH - Math.round(22*s));
+      ctx.globalAlpha = 1;
     }
   }
-  function doBossAttackEffect(ev){
-    const mx = ev.mx;
-    const my = ev.my;
-    spawnBurst(mx, my - 12, 'rgba(255,90,90,0.95)');
-    for (let i=0;i<10;i++){
-      const a = rng()*Math.PI*2;
-      const sp = 320 + rng()*360;
-      particles.push({ x:mx, y:my, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 160, life:0.55 + rng()*0.28, kind:'spark', color:'rgba(255,90,90,0.85)' });
+
+  function drawBar(x, y, w, h, ratio, label, s){
+    ratio = clamp(ratio, 0, 1);
+    ctx.save();
+
+    // white border
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x, y, w, h);
+    // black inside
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(x+2, y+2, w-4, h-4);
+
+    // fill
+    ctx.fillStyle = (label === 'HP') ? 'rgba(124,247,194,0.85)' : 'rgba(124,201,255,0.85)';
+    ctx.fillRect(x+3, y+3, Math.max(0, (w-6)*ratio), h-6);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `900 ${Math.round(16*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.textAlign = 'left';
+    ctx.fillText(label, x + w + Math.round(10*s), y + h - 1);
+
+    ctx.restore();
+  }
+
+  function drawCenterCard(W, H, glow, title, sub){
+    const s = uiScale();
+    const cw = Math.min(Math.round(900*s), W - Math.round(100*s));
+    const ch = Math.round(320*s);
+    const cx = (W - cw)/2;
+    const cy = (H - ch)/2 - Math.round(10*s);
+
+    dqWindow(cx, cy, cw, ch);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+
+    ctx.font = `950 ${Math.round(34*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(title, cx + Math.round(22*s), cy + Math.round(78*s));
+
+    ctx.font = `850 ${Math.round(20*s)}px ui-sans-serif, system-ui, -apple-system`;
+    wrapTextR(sub, cx + Math.round(22*s), cy + Math.round(124*s), cw - Math.round(44*s), Math.round(30*s), 3);
+
+    ctx.globalAlpha = 1;
+    ctx.font = `900 ${Math.round(20*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ローカルランキング Top3', cx + Math.round(22*s), cy + ch - Math.round(88*s));
+
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    const top3 = ranking.slice(0,3);
+    for (let i=0;i<top3.length;i++){
+      const r = top3[i];
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + Math.round(22*s), cy + ch - Math.round(56*s) + i*Math.round(24*s));
     }
   }
-  function spawnPuff(x,y,color){
-    for (let i=0;i<10;i++){
-      const a = rng()*Math.PI*2;
-      const sp = 160 + rng()*220;
-      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 120, life:0.35 + rng()*0.25, kind:'puff', color });
-    }
-  }
-  function spawnBurst(x,y,color){
-    for (let i=0;i<18;i++){
-      const a = rng()*Math.PI*2;
-      const sp = 220 + rng()*360;
-      particles.push({ x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 180, life:0.55 + rng()*0.30, kind:'spark', color });
+
+  // RESULT：文字被りを避けて “はい/いいえ” をキャンバス内に配置
+  function drawResultCard(W, H, glow){
+    const s = uiScale();
+    const cw = Math.min(Math.round(980*s), W - Math.round(80*s));
+    const ch = Math.round(560*s);
+    const cx = (W - cw)/2;
+    const cy = (H - ch)/2 - Math.round(6*s);
+
+    dqWindow(cx, cy, cw, ch);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+
+    // header
+    ctx.font = `950 ${Math.round(34*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('リザルト', cx + Math.round(22*s), cy + Math.round(70*s));
+
+    // distance (right)
+    ctx.textAlign = 'right';
+    ctx.font = `950 ${Math.round(40*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText(`${fmt(dist)}`, cx + cw - Math.round(22*s), cy + Math.round(70*s));
+
+    // body
+    ctx.textAlign = 'left';
+    ctx.font = `900 ${Math.round(20*s)}px ui-sans-serif, system-ui, -apple-system`;
+    const cls = heroClass ? heroClass.name : '？？？';
+    const wpn = equipped ? `${equipped.icon}${equipped.name}` : 'なし';
+
+    let y = cy + Math.round(120*s);
+    ctx.fillText(`しょくぎょう：${cls}  Lv${level}`, cx + Math.round(22*s), y); y += Math.round(30*s);
+    ctx.fillText(`しょうごう：${title || '—'}`, cx + Math.round(22*s), y); y += Math.round(30*s);
+    ctx.fillText(`とうばつ：${kills}（レア${rareCount}）`, cx + Math.round(22*s), y); y += Math.round(30*s);
+    ctx.fillText(`ぶき：${wpn}`, cx + Math.round(22*s), y); y += Math.round(34*s);
+
+    // death cause (big)
+    ctx.font = `950 ${Math.round(28*s)}px ui-sans-serif, system-ui, -apple-system`;
+    y += Math.round(10*s);
+    const used = wrapTextR(`しにかた：${lastCause || '—'}`, cx + Math.round(22*s), y, cw - Math.round(44*s), Math.round(34*s), 2);
+    y += used * Math.round(34*s) + Math.round(12*s);
+
+    // “もう一回？”＋DQ風はい/いいえ
+    ctx.font = `950 ${Math.round(30*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('もういちど たびにでますか？', cx + Math.round(22*s), cy + ch - Math.round(170*s));
+
+    const bw = Math.round(420*s);
+    const bh = Math.round(150*s);
+    const bx = cx + cw - bw - Math.round(22*s);
+    const by = cy + ch - bh - Math.round(40*s);
+
+    dqWindow(bx, by, bw, bh);
+
+    // 選択肢（タップ判定に使用）
+    resultChoice.on = true;
+    resultChoice.yes = { x: bx + Math.round(20*s), y: by + Math.round(24*s), w: bw - Math.round(40*s), h: Math.round(54*s) };
+    resultChoice.no  = { x: bx + Math.round(20*s), y: by + Math.round(86*s), w: bw - Math.round(40*s), h: Math.round(54*s) };
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'left';
+    ctx.font = `950 ${Math.round(36*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('▶はい', bx + Math.round(28*s), by + Math.round(62*s));
+    ctx.fillText(' いいえ', bx + Math.round(28*s), by + Math.round(124*s));
+
+    // ランキングTop3（左下）
+    ctx.textAlign = 'left';
+    ctx.font = `900 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    ctx.fillText('ローカルランキング Top3', cx + Math.round(22*s), cy + ch - Math.round(86*s));
+    ctx.font = `800 ${Math.round(18*s)}px ui-sans-serif, system-ui, -apple-system`;
+    const top3 = ranking.slice(0,3);
+    for (let i=0;i<top3.length;i++){
+      const r = top3[i];
+      ctx.fillText(`${i+1}. ${r.dist.toFixed(1)}m  ${r.cls} Lv${r.lv}`, cx + Math.round(22*s), cy + ch - Math.round(58*s) + i*Math.round(24*s));
     }
   }
 
@@ -1549,7 +1378,8 @@
     ctx.closePath();
   }
 
-  function wrapText(text, x, y, maxWidth, lineHeight, maxLines){
+  // 返り値：描画した行数（固定Yを廃止して “被り” を根絶）
+  function wrapTextR(text, x, y, maxWidth, lineHeight, maxLines){
     const chars = String(text).split('');
     let line = '';
     let lines = 0;
@@ -1560,19 +1390,34 @@
         ctx.fillText(line, x, y + lines*lineHeight);
         lines += 1;
         line = chars[i];
-        if (lines >= maxLines) return;
+        if (lines >= maxLines) return lines;
       } else {
         line = test;
       }
     }
     ctx.fillText(line, x, y + lines*lineHeight);
+    return lines + 1;
   }
+
+  function ellipsize(text, maxWidth){
+    const s = String(text);
+    if (ctx.measureText(s).width <= maxWidth) return s;
+    let lo = 0, hi = s.length;
+    while (lo < hi){
+      const mid = ((lo + hi) / 2) | 0;
+      const t = s.slice(0, mid) + '…';
+      if (ctx.measureText(t).width <= maxWidth) lo = mid + 1;
+      else hi = mid;
+    }
+    return s.slice(0, Math.max(0, lo - 2)) + '…';
+  }
+
+  function clamp(v,a,b){ return Math.max(a, Math.min(b, v)); }
 
   // ==============================
   // init
   // ==============================
-  showMsg('タップして ぼうけん', 1.0, 'ready');
-
+  showMsg('タップして ぼうけん', 1.2);
 })();
 </script>
 </body>
